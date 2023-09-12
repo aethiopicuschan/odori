@@ -18,4 +18,5 @@ const (
 	ScrollBarHandleGrayY = 60
 	DisabledGrayY        = 128
 	WindowTitle          = "Odori"
+	OdoriVersion         = "0.0.0"
 )
