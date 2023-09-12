@@ -29,12 +29,10 @@ func NewGame() ebiten.Game {
 	buttonMap := map[string]func(){}
 	buttonMap["Load files"] = game.loadFiles
 	buttonMap["Load sprite sheet"] = game.loadSpriteSheet
-	buttonMap["Change animation size"] = game.changeAnimationSize
 	buttonMap["Export"] = game.export
 	buttonList := []string{
 		"Load files",
 		"Load sprite sheet",
-		"Change animation size",
 		"Export",
 	}
 	buttons := []ui.Component{}
