@@ -37,33 +37,31 @@ func newPart(sprite sprite.Sprite, len int) *part {
 }
 
 type Animation struct {
-	width           int
-	height          int
-	offsetY         int
-	offsetX         int
-	AnimationWidth  int
-	AnimationHeight int
-	font            font.Face
-	infos           string
-	infosY          int
-	infosDy         int
-	customLinks     []*Link
-	parts           []*part
-	indexes         []int
-	currentPart     int
-	playing         bool
-	currentTick     int
-	maxTick         int
-	playerButtons   []*Button
-	playerX         int
-	playerY         int
-	playerWidth     int
-	playerHeight    int
-	cursolOnPlayer  bool
-	noticer         *Noticer
+	width               int
+	height              int
+	offsetY             int
+	offsetX             int
+	AnimationWidth      int
+	AnimationHeight     int
+	font                font.Face
+	customLinks         []*Link
+	parts               []*part
+	indexes             []int
+	currentPart         int
+	playing             bool
+	currentTick         int
+	maxTick             int
+	playerButtons       []*Button
+	playerX             int
+	playerY             int
+	playerWidth         int
+	playerHeight        int
+	cursolOnPlayer      bool
+	noticer             *Noticer
+	changeAnimationSize func()
 }
 
-func NewAnimation(noticer *Noticer) *Animation {
+func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 	w, h := ebiten.WindowSize()
 	tt, _ := opentype.Parse(goregular.TTF)
 	font, _ := opentype.NewFace(tt, &opentype.FaceOptions{
@@ -73,6 +71,7 @@ func NewAnimation(noticer *Noticer) *Animation {
 
 	a := &Animation{}
 	a.noticer = noticer
+	a.changeAnimationSize = changeAnimationSize
 	a.offsetX = constant.MenuWidth
 	a.offsetY = h / 3
 	a.width = w - a.offsetX
@@ -80,9 +79,6 @@ func NewAnimation(noticer *Noticer) *Animation {
 	a.AnimationWidth = constant.DefaultAnimationSize
 	a.AnimationHeight = constant.DefaultAnimationSize
 	a.font = font
-	a.infos = ""
-	a.infosY = 5
-	a.infosDy = 0
 	a.parts = []*part{}
 	a.currentPart = -1
 	a.indexes = []int{}
@@ -142,6 +138,10 @@ func NewAnimation(noticer *Noticer) *Animation {
 		}),
 	}
 	a.customLinks = []*Link{
+		NewLink(0, 0, "# Informations", nil),
+		NewLink(0, 0, "Size", a.changeAnimationSize),
+		NewLink(0, 0, "TPS", nil),
+		NewLink(0, 0, "TotalLen", nil),
 		NewLink(0, 0, "# Properties", nil),
 		NewLink(0, 0, "Scale", func() {
 			a.playing = false
@@ -374,26 +374,6 @@ func (a *Animation) Append(sprite sprite.Sprite) {
 }
 
 func (a *Animation) Update() error {
-	infos := []string{
-		"# Informations",
-		fmt.Sprintf("Size: %dx%d", a.AnimationWidth, a.AnimationHeight),
-		fmt.Sprintf("TPS : %d", ebiten.TPS()),
-		fmt.Sprintf("Len : %d ticks (%0.2f sec)", a.maxTick, float64(a.maxTick)/float64(ebiten.TPS())),
-	}
-	a.infos = ""
-	for _, info := range infos {
-		a.infos += info + "\n"
-	}
-
-	defaultBs := text.BoundString(a.font, "DEFAULT")
-	infosDy := defaultBs.Dy() * (len(infos) + 1)
-	if a.infosDy == infosDy {
-		for i, l := range a.customLinks {
-			l.MoveTo(a.offsetX+5, a.offsetY+a.infosY+a.infosDy+defaultBs.Dy()+((defaultBs.Dy()+5)*i))
-		}
-	}
-	a.infosDy = infosDy
-
 	partsLen := len(a.parts)
 	for _, b := range a.playerButtons {
 		b.SetDisabled(partsLen == 0 || a.playing)
@@ -406,6 +386,24 @@ func (a *Animation) Update() error {
 			}
 		}
 		b.Update()
+	}
+	for _, l := range a.customLinks {
+		if l.id == "Size" {
+			l.SetLabel(fmt.Sprintf("Size: %dx%d", a.AnimationWidth, a.AnimationHeight))
+		}
+		if l.id == "TPS" {
+			l.SetLabel(fmt.Sprintf("TPS : %d", ebiten.TPS()))
+		}
+		if l.id == "TotalLen" {
+			l.SetLabel(fmt.Sprintf("Len : %d ticks (%0.2f sec)", a.maxTick, float64(a.maxTick)/float64(ebiten.TPS())))
+		}
+		if l.id == "# Properties" {
+			break
+		} else {
+			if partsLen == 0 {
+				l.Update()
+			}
+		}
 	}
 
 	// Tickと索引を元に現在のパーツを更新
@@ -437,7 +435,7 @@ func (a *Animation) Update() error {
 				l.SetLabel(fmt.Sprintf("Len  : %d ticks (%0.2f sec)", part.length, float64(part.length)/float64(ebiten.TPS())))
 			}
 			l.SetDisabled(a.playing)
-			if part.sprite.IsEmpty() && l.id != "Len" && l.id != "Reset" && l.id != "Delete" {
+			if part.sprite.IsEmpty() && l.id != "Len" && l.id != "Reset" && l.id != "Delete" && l.id != "Size" {
 				l.SetDisabled(true)
 			}
 			l.Update()
@@ -523,10 +521,11 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	for _, b := range a.playerButtons {
 		defer b.Draw(screen)
 	}
-	if a.currentPart >= 0 {
-		for _, cl := range a.customLinks {
-			defer cl.Draw(screen)
+	for _, cl := range a.customLinks {
+		if cl.id == "# Properties" && len(a.parts) == 0 {
+			break
 		}
+		defer cl.Draw(screen)
 	}
 
 	// Final Draw.
@@ -595,11 +594,6 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 
 	bg.DrawImage(frame, frameOp)
 
-	defaultBs := text.BoundString(a.font, "DEFAULT")
-
-	// Informations.
-	text.Draw(bg, a.infos, a.font, 5, defaultBs.Dy()+5, color.Black)
-
 	// Player.
 	player := ebiten.NewImage(a.playerWidth, a.playerHeight)
 	player.Fill(color.Gray{Y: constant.PlayerGrayY})
@@ -657,7 +651,7 @@ func (a *Animation) Layout(outsideWidth, outsideHeight int) {
 	}
 	defaultBs := text.BoundString(a.font, "DEFAULT")
 	for i, l := range a.customLinks {
-		l.MoveTo(a.offsetX+5, a.offsetY+a.infosY+a.infosDy+defaultBs.Dy()+((defaultBs.Dy()+5)*i))
+		l.MoveTo(a.offsetX+5, a.offsetY+5+((defaultBs.Dy()+5)*i))
 	}
 }
 

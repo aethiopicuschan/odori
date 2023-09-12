@@ -59,7 +59,7 @@ func NewGame() ebiten.Game {
 	noticeHeight := 30
 	game.noticer = ui.NewNoticer(noticeHeight)
 
-	game.animation = ui.NewAnimation(game.noticer)
+	game.animation = ui.NewAnimation(game.noticer, game.changeAnimationSize)
 	game.components = append(game.components, game.animation)
 
 	game.components = append(game.components, game.noticer)
