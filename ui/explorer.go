@@ -96,7 +96,7 @@ func (e *Explorer) Update() error {
 
 	// which sprite is cursor on?
 	e.cursolOn = -1
-	if len(e.sprites) > 0 && isCursorOnExplorer {
+	if len(e.sprites) > 1 && isCursorOnExplorer {
 		zeroX := constant.MenuWidth
 		xOnExplorer := cursorX - zeroX
 		yOnExplorer := cursorY - int(e.scrollOffset)
@@ -190,10 +190,6 @@ func (e *Explorer) Draw(screen *ebiten.Image) {
 	defer screen.DrawImage(bg, bgOp)
 
 	spritesPerRow := (bg.Bounds().Dx() - e.offsetX) / (e.size + e.offsetX)
-	numOfSprites := len(e.sprites)
-	if numOfSprites == 0 {
-		return
-	}
 
 	// ScrollBar.
 	if e.scrollBar.show {
@@ -254,6 +250,10 @@ func (e *Explorer) Draw(screen *ebiten.Image) {
 		y := e.offsetY*(col+1) + (e.size * col)
 		frameOp.GeoM.Translate(float64(x), float64(y))
 		frameLineOp.GeoM.Translate(float64(x-1), float64(y-1))
+		if e.scrollBar.show {
+			frameLineOp.GeoM.Translate(0, e.scrollOffset)
+			frameOp.GeoM.Translate(0, e.scrollOffset)
+		}
 		// Draw Sprite.
 		if !sprite.IsEmpty() {
 			img := sprite.Image
@@ -278,10 +278,6 @@ func (e *Explorer) Draw(screen *ebiten.Image) {
 			spriteOp.GeoM.Scale(float64(scale), float64(scale))
 			spriteOp.GeoM.Translate(-(float64(width)*scale)/2, -(float64(height)*scale)/2)
 			spriteOp.GeoM.Translate(float64(e.size/2), float64(e.size/2))
-			if e.scrollBar.show {
-				frameLineOp.GeoM.Translate(0, e.scrollOffset)
-				frameOp.GeoM.Translate(0, e.scrollOffset)
-			}
 			frame.DrawImage(img, spriteOp)
 		}
 		if i == e.cursolOn {
