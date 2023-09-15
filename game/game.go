@@ -101,9 +101,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func (g *Game) loadFiles() {
 	go func() {
-		chPick := make(chan io.PickResult)
-		go io.PickMultiple(chPick)
-		result := <-chPick
+		pickCh := make(chan io.PickResult)
+		go io.PickMultiple(pickCh)
+		result := <-pickCh
+		close(pickCh)
 		if result.Err != nil {
 			if result.Err.Error() != "dialog canceled" {
 				g.noticer.AddNotice(ui.WARN, result.Err.Error())
@@ -115,15 +116,16 @@ func (g *Game) loadFiles() {
 			go io.Read(readCh, path)
 		}
 		appended := 0
-		for _, path := range result.Paths {
+		for i := 0; i < cap(readCh); i++ {
 			result := <-readCh
 			if result.Err != nil {
-				g.noticer.AddNotice(ui.ERROR, fmt.Sprintf("%s: %s", result.Err.Error(), path))
+				g.noticer.AddNotice(ui.ERROR, fmt.Sprintf("%s: %s", result.Err.Error(), result.Path))
 				continue
 			}
 			g.explorer.AppendSprite(result.Sprite)
 			appended++
 		}
+		close(readCh)
 		if appended == 0 {
 			g.noticer.AddNotice(ui.WARN, "No sprite is loaded!")
 		} else {
@@ -134,9 +136,10 @@ func (g *Game) loadFiles() {
 
 func (g *Game) loadSpriteSheet() {
 	go func() {
-		chPick := make(chan io.PickResult)
-		go io.Pick(chPick)
-		result := <-chPick
+		pickCh := make(chan io.PickResult)
+		go io.Pick(pickCh)
+		result := <-pickCh
+		close(pickCh)
 		if result.Err != nil {
 			if result.Err.Error() != "dialog canceled" {
 				g.noticer.AddNotice(ui.WARN, result.Err.Error())
@@ -146,6 +149,7 @@ func (g *Game) loadSpriteSheet() {
 		chRead := make(chan io.ReadSpriteSheetResult)
 		go io.ReadSpriteSheet(chRead, result.Paths[0])
 		readResult := <-chRead
+		close(chRead)
 		if readResult.Err != nil {
 			g.noticer.AddNotice(ui.ERROR, fmt.Sprintf("%s: %s", readResult.Err.Error(), result.Paths[0]))
 			return
@@ -168,6 +172,7 @@ func (g *Game) changeAnimationSize() {
 		ch := make(chan io.EntryResult)
 		go io.Entry(ch, "Change animation size", "Enter the size of animation in pixel", fmt.Sprintf("%dx%d", raw.Width, raw.Height))
 		result := <-ch
+		close(ch)
 		if result.Err != nil {
 			if result.Err.Error() != "dialog canceled" {
 				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
@@ -213,6 +218,7 @@ func (g *Game) export() {
 			ch := make(chan io.WriteSpriteSheetResult)
 			go io.WriteSpriteSheet(ch, sprites, "./spritesheet.png")
 			result := <-ch
+			close(ch)
 			if result.Err != nil {
 				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
 				return
@@ -231,6 +237,7 @@ func (g *Game) export() {
 		ch := make(chan error)
 		go io.Write(ch, bytes, "./animation.json")
 		err = <-ch
+		close(ch)
 		if err != nil {
 			g.noticer.AddNotice(ui.ERROR, err.Error())
 			return

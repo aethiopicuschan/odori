@@ -11,7 +11,6 @@ func Pick(ch chan PickResult) {
 	pickResult := PickResult{}
 	defer func() {
 		ch <- pickResult
-		close(ch)
 	}()
 	path, err := zenity.SelectFile(
 		zenity.FileFilters{
@@ -28,7 +27,6 @@ func PickMultiple(ch chan PickResult) {
 	pickResult := PickResult{}
 	defer func() {
 		ch <- pickResult
-		close(ch)
 	}()
 	paths, err := zenity.SelectFileMultiple(
 		zenity.FileFilters{

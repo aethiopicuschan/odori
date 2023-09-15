@@ -7,14 +7,16 @@ import (
 
 type ReadResult struct {
 	Sprite sprite.Sprite
+	Path   string
 	Err    error
 }
 
 func Read(ch chan ReadResult, path string) {
-	result := ReadResult{}
+	result := ReadResult{
+		Path: path,
+	}
 	defer func() {
 		ch <- result
-		close(ch)
 	}()
 	img, err := readPng(path)
 	if err != nil {
@@ -33,7 +35,6 @@ func ReadSpriteSheet(ch chan ReadSpriteSheetResult, path string) {
 	result := ReadSpriteSheetResult{}
 	defer func() {
 		ch <- result
-		close(ch)
 	}()
 	img, err := readPng(path)
 	if err != nil {
