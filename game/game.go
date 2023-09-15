@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"path/filepath"
 
 	"github.com/aethiopicuschan/odori/animation"
 	"github.com/aethiopicuschan/odori/constant"
@@ -110,6 +111,11 @@ func (g *Game) newAnimation() {
 		return
 	}
 	if result.Input == "" {
+		return
+	}
+	base := filepath.Base(result.Input)
+	if base != result.Input {
+		g.noticer.AddNotice(ui.ERROR, "Invalid name!")
 		return
 	}
 	g.name = result.Input
