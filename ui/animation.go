@@ -25,7 +25,6 @@ type Animation struct {
 	animation           *animation.Animation
 	font                font.Face
 	customLinks         []*Link
-	parts               []*animation.Part
 	indexes             []int
 	currentPart         int
 	playing             bool
@@ -58,7 +57,6 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 	a.width = w - a.offsetX
 	a.height = h - a.offsetY
 	a.font = font
-	a.parts = []*animation.Part{}
 	a.currentPart = -1
 	a.indexes = []int{}
 	a.playing = false
@@ -110,7 +108,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 			if a.playing {
 				return
 			}
-			if a.currentPart+1 < len(a.parts) {
+			if a.currentPart+1 < len(a.animation.Parts) {
 				a.currentTick = a.indexes[a.currentPart+1]
 				a.currentPart += 1
 			}
@@ -125,11 +123,11 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		NewLink(0, 0, "Scale", func() {
 			a.playing = false
 			go func() {
-				if len(a.parts) == 0 {
+				if len(a.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.parts[a.currentPart]
+				part := a.animation.Parts[a.currentPart]
 				go io.Entry(ch, "Change scale", "Enter the scale", fmt.Sprintf("%0.2f", part.Scale))
 				result := <-ch
 				close(ch)
@@ -155,11 +153,11 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		NewLink(0, 0, "DiffX", func() {
 			a.playing = false
 			go func() {
-				if len(a.parts) == 0 {
+				if len(a.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.parts[a.currentPart]
+				part := a.animation.Parts[a.currentPart]
 				go io.Entry(ch, "Change DiffX", "Enter the diff of position from center.", fmt.Sprintf("%d", part.DiffX))
 				result := <-ch
 				close(ch)
@@ -181,11 +179,11 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		NewLink(0, 0, "DiffY", func() {
 			a.playing = false
 			go func() {
-				if len(a.parts) == 0 {
+				if len(a.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.parts[a.currentPart]
+				part := a.animation.Parts[a.currentPart]
 				go io.Entry(ch, "Change DiffY", "Enter the diff of position from center.", fmt.Sprintf("%d", part.DiffY))
 				result := <-ch
 				close(ch)
@@ -206,20 +204,20 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		}),
 		NewLink(0, 0, "Reverse", func() {
 			a.playing = false
-			if len(a.parts) == 0 {
+			if len(a.animation.Parts) == 0 {
 				return
 			}
-			part := a.parts[a.currentPart]
+			part := a.animation.Parts[a.currentPart]
 			part.Reverse = !part.Reverse
 		}),
 		NewLink(0, 0, "Len", func() {
 			a.playing = false
 			go func() {
-				if len(a.parts) == 0 {
+				if len(a.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.parts[a.currentPart]
+				part := a.animation.Parts[a.currentPart]
 				go io.Entry(ch, "Change Length", fmt.Sprintf("Enter the length of ticks. (%d ticks means 1sec)", ebiten.TPS()), fmt.Sprintf("%d", part.Length))
 				result := <-ch
 				close(ch)
@@ -247,10 +245,10 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		NewLink(0, 0, "# Operations", nil),
 		NewLink(0, 0, "Auto scale", func() {
 			a.playing = false
-			if len(a.parts) == 0 {
+			if len(a.animation.Parts) == 0 {
 				return
 			}
-			part := a.parts[a.currentPart]
+			part := a.animation.Parts[a.currentPart]
 			if part.Sprite.IsEmpty() {
 				return
 			}
@@ -276,10 +274,10 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		NewLink(0, 0, "Reset", func() {
 			a.playing = false
 			go func() {
-				if len(a.parts) == 0 {
+				if len(a.animation.Parts) == 0 {
 					return
 				}
-				part := a.parts[a.currentPart]
+				part := a.animation.Parts[a.currentPart]
 				ch := make(chan io.QuestionResult)
 				go io.Question(ch, "Reset", "Are you sure you want to reset properties of current part?")
 				result := <-ch
@@ -298,7 +296,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		NewLink(0, 0, "Delete", func() {
 			a.playing = false
 			go func() {
-				if len(a.parts) == 0 {
+				if len(a.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.QuestionResult)
@@ -308,11 +306,11 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				if !result.Answer {
 					return
 				}
-				if len(a.parts) == 1 {
-					a.parts = []*animation.Part{}
+				if len(a.animation.Parts) == 1 {
+					a.animation.Parts = []*animation.Part{}
 					a.currentPart = -1
 				} else {
-					a.parts = append(a.parts[:a.currentPart], a.parts[a.currentPart+1:]...)
+					a.animation.Parts = append(a.animation.Parts[:a.currentPart], a.animation.Parts[a.currentPart+1:]...)
 					a.currentPart--
 					if a.currentPart < 0 {
 						a.currentPart = 0
@@ -332,7 +330,7 @@ func (a *Animation) resetIndexes() {
 	a.maxTick = 0
 	a.currentTick = 0
 	a.indexes = []int{}
-	for i, p := range a.parts {
+	for i, p := range a.animation.Parts {
 		if i == a.currentPart {
 			a.currentTick = a.maxTick
 		}
@@ -342,18 +340,18 @@ func (a *Animation) resetIndexes() {
 }
 
 func (a *Animation) Append(sprite sprite.Sprite) {
-	if len(a.parts) == 0 {
+	if len(a.animation.Parts) == 0 {
 		a.currentPart = 0
 	}
 	len := ebiten.TPS()
-	a.parts = append(a.parts, animation.NewPart(sprite, len))
+	a.animation.Parts = append(a.animation.Parts, animation.NewPart(sprite, len))
 	a.indexes = append(a.indexes, a.maxTick)
 	a.currentTick = a.maxTick
 	a.maxTick += len
 }
 
 func (a *Animation) Update() error {
-	partsLen := len(a.parts)
+	partsLen := len(a.animation.Parts)
 	for _, b := range a.playerButtons {
 		b.SetDisabled(partsLen == 0 || a.playing)
 		if b.label == "Play" || b.label == "Stop" {
@@ -395,7 +393,7 @@ func (a *Animation) Update() error {
 		} else if a.currentPart > 0 && a.currentTick < a.indexes[a.currentPart] {
 			a.currentPart--
 		}
-		part := a.parts[a.currentPart]
+		part := a.animation.Parts[a.currentPart]
 		// カスタムリンク
 		for _, l := range a.customLinks {
 			if l.id == "Scale" {
@@ -433,7 +431,7 @@ func (a *Animation) Update() error {
 		return nil
 	}
 
-	if len(a.parts) == 0 {
+	if len(a.animation.Parts) == 0 {
 		return nil
 	}
 
@@ -501,7 +499,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 		defer b.Draw(screen)
 	}
 	for _, cl := range a.customLinks {
-		if cl.id == "# Properties" && len(a.parts) == 0 {
+		if cl.id == "# Properties" && len(a.animation.Parts) == 0 {
 			break
 		}
 		defer cl.Draw(screen)
@@ -551,7 +549,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 
 	// Draw part.
 	if a.currentPart >= 0 {
-		part := a.parts[a.currentPart]
+		part := a.animation.Parts[a.currentPart]
 		scale := part.Scale
 		diffX := part.DiffX
 		diffY := part.DiffY
@@ -593,7 +591,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 		player.DrawImage(indexPos, indexPosOp)
 		if i == a.currentPart {
 			// Fill current part.
-			width := int(math.Ceil(float64(a.parts[i].Length) / float64(a.maxTick) * float64(player.Bounds().Dx())))
+			width := int(math.Ceil(float64(a.animation.Parts[i].Length) / float64(a.maxTick) * float64(player.Bounds().Dx())))
 			currentPart := ebiten.NewImage(width, player.Bounds().Dy())
 			currentPart.Fill(color.Gray{Y: constant.PlayerCurrentGrayY})
 			currentPartOp := &ebiten.DrawImageOptions{}
@@ -603,7 +601,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	}
 	player.DrawImage(progress, progressOp)
 	bg.DrawImage(player, playerOp)
-	s := fmt.Sprintf("Part: %d / %d\nTick: %d / %d\nSec: %0.2f / %0.2f", a.currentPart+1, len(a.parts), a.currentTick, a.maxTick, float64(a.currentTick)/float64(ebiten.TPS()), float64(a.maxTick)/float64(ebiten.TPS()))
+	s := fmt.Sprintf("Part: %d / %d\nTick: %d / %d\nSec: %0.2f / %0.2f", a.currentPart+1, len(a.animation.Parts), a.currentTick, a.maxTick, float64(a.currentTick)/float64(ebiten.TPS()), float64(a.maxTick)/float64(ebiten.TPS()))
 	bs := text.BoundString(a.font, s)
 	text.Draw(bg, s, a.font, 10, a.playerY-bs.Dy(), color.Black)
 }
@@ -635,7 +633,7 @@ func (a *Animation) Layout(outsideWidth, outsideHeight int) {
 }
 
 func (a *Animation) CanExport() bool {
-	return len(a.parts) > 0
+	return len(a.animation.Parts) > 0
 }
 
 func (a *Animation) RawAnimation() *animation.Animation {
