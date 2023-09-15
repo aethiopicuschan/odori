@@ -1,6 +1,8 @@
 package sprite
 
 import (
+	"encoding/json"
+	"fmt"
 	"image"
 
 	"github.com/google/uuid"
@@ -43,4 +45,14 @@ func (s *Sprite) IsEmpty() bool {
 
 func (s *Sprite) Id() string {
 	return s.id
+}
+
+func (s *Sprite) MarshalJSON() ([]byte, error) {
+	j := map[string]string{
+		"isEmpty": fmt.Sprintf("%t", s.IsEmpty()),
+	}
+	if !s.IsEmpty() {
+		j["id"] = s.Id()
+	}
+	return json.Marshal(j)
 }

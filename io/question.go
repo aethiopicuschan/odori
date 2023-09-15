@@ -10,6 +10,7 @@ func Question(ch chan QuestionResult, title, text string) {
 	result := QuestionResult{}
 	defer func() {
 		ch <- result
+		close(ch)
 	}()
 	err := zenity.Question(text, zenity.Title(title))
 	result.Answer = err == nil

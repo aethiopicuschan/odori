@@ -1,14 +1,16 @@
 package animation
 
-import "github.com/aethiopicuschan/odori/sprite"
+import (
+	"github.com/aethiopicuschan/odori/sprite"
+)
 
 type Part struct {
-	Sprite  sprite.Sprite
-	Scale   float64
-	DiffX   int
-	DiffY   int
-	Reverse bool
-	Length  int
+	Sprite  sprite.Sprite `json:"sprite"`
+	Scale   float64       `json:"scale"`
+	DiffX   int           `json:"diffX"`
+	DiffY   int           `json:"diffY"`
+	Reverse bool          `json:"reverse"`
+	Length  int           `json:"length"`
 }
 
 func NewPart(sprite sprite.Sprite, len int) *Part {

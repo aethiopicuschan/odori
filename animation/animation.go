@@ -1,11 +1,15 @@
 package animation
 
-import "github.com/aethiopicuschan/odori/constant"
+import (
+	"image"
+
+	"github.com/aethiopicuschan/odori/constant"
+)
 
 type Animation struct {
-	Parts  []*Part
-	Width  int
-	Height int
+	Parts  []*Part `json:"parts"`
+	Width  int     `json:"width"`
+	Height int     `json:"height"`
 }
 
 func NewAnimation() *Animation {
@@ -14,4 +18,9 @@ func NewAnimation() *Animation {
 		Width:  constant.DefaultAnimationSize,
 		Height: constant.DefaultAnimationSize,
 	}
+}
+
+type AnimationWithSpriteSheet struct {
+	Animation   *Animation             `json:"animation"`
+	SpriteSheet map[string]image.Point `json:"spriteSheet"`
 }

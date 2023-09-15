@@ -1,9 +1,12 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
+	"image"
 	"image/color"
 
+	"github.com/aethiopicuschan/odori/animation"
 	"github.com/aethiopicuschan/odori/constant"
 	"github.com/aethiopicuschan/odori/io"
 	"github.com/aethiopicuschan/odori/sprite"
@@ -101,7 +104,6 @@ func (g *Game) loadFiles() {
 		chPick := make(chan io.PickResult)
 		go io.PickMultiple(chPick)
 		result := <-chPick
-		close(chPick)
 		if result.Err != nil {
 			if result.Err.Error() != "dialog canceled" {
 				g.noticer.AddNotice(ui.WARN, result.Err.Error())
@@ -135,7 +137,6 @@ func (g *Game) loadSpriteSheet() {
 		chPick := make(chan io.PickResult)
 		go io.Pick(chPick)
 		result := <-chPick
-		close(chPick)
 		if result.Err != nil {
 			if result.Err.Error() != "dialog canceled" {
 				g.noticer.AddNotice(ui.WARN, result.Err.Error())
@@ -145,7 +146,6 @@ func (g *Game) loadSpriteSheet() {
 		chRead := make(chan io.ReadSpriteSheetResult)
 		go io.ReadSpriteSheet(chRead, result.Paths[0])
 		readResult := <-chRead
-		close(chRead)
 		if readResult.Err != nil {
 			g.noticer.AddNotice(ui.ERROR, fmt.Sprintf("%s: %s", readResult.Err.Error(), result.Paths[0]))
 			return
@@ -168,7 +168,6 @@ func (g *Game) changeAnimationSize() {
 		ch := make(chan io.EntryResult)
 		go io.Entry(ch, "Change animation size", "Enter the size of animation in pixel", fmt.Sprintf("%dx%d", raw.Width, raw.Height))
 		result := <-ch
-		close(ch)
 		if result.Err != nil {
 			if result.Err.Error() != "dialog canceled" {
 				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
@@ -191,9 +190,51 @@ func (g *Game) changeAnimationSize() {
 	}()
 }
 
+// TODO パスと名前を指定できるようにする
 func (g *Game) export() {
 	if !g.player.CanExport() {
 		return
 	}
-	g.noticer.AddNotice(ui.ERROR, "Not implemented yet!")
+	go func() {
+		raw := g.player.RawAnimation()
+		m := map[string]sprite.Sprite{}
+		for _, part := range raw.Parts {
+			if !part.Sprite.IsEmpty() {
+				m[part.Sprite.Id()] = part.Sprite
+			}
+		}
+		sprites := []sprite.Sprite{}
+		for _, sprite := range m {
+			sprites = append(sprites, sprite)
+		}
+		spriteSheet := map[string]image.Point{}
+		// スプライトシートの出力
+		if len(sprites) != 0 {
+			ch := make(chan io.WriteSpriteSheetResult)
+			go io.WriteSpriteSheet(ch, sprites, "./spritesheet.png")
+			result := <-ch
+			if result.Err != nil {
+				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
+				return
+			}
+			spriteSheet = result.PointsMap
+		}
+		// AnimationのJSON出力
+		bytes, err := json.MarshalIndent(animation.AnimationWithSpriteSheet{
+			Animation:   raw,
+			SpriteSheet: spriteSheet,
+		}, "", "  ")
+		if err != nil {
+			g.noticer.AddNotice(ui.ERROR, err.Error())
+			return
+		}
+		ch := make(chan error)
+		go io.Write(ch, bytes, "./animation.json")
+		err = <-ch
+		if err != nil {
+			g.noticer.AddNotice(ui.ERROR, err.Error())
+			return
+		}
+		g.noticer.AddNotice(ui.INFO, "Exported!")
+	}()
 }
