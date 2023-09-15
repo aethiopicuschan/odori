@@ -8,6 +8,7 @@ const (
 	DefaultAnimationSize  = 100
 	MenuWidth             = 150
 	NoticeTime            = 5
+	NoticeHeight          = 30
 	MenuGrayY             = 230
 	ButtonGrayY           = 190
 	ExplorerGrayY         = 200

@@ -88,6 +88,10 @@ func (b *Button) MoveTo(x, y int) {
 	b.y = y
 }
 
+func (b *Button) Label() string {
+	return b.label
+}
+
 func (b *Button) SetLabel(label string) {
 	b.label = label
 }

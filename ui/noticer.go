@@ -26,12 +26,11 @@ type notice struct {
 }
 
 type Noticer struct {
-	noticeHeight int
-	notices      []*notice
-	font         font.Face
+	notices []*notice
+	font    font.Face
 }
 
-func NewNoticer(noticeHeight int) *Noticer {
+func NewNoticer() *Noticer {
 	tt, _ := opentype.Parse(goregular.TTF)
 	font, _ := opentype.NewFace(tt, &opentype.FaceOptions{
 		Size: 12,
@@ -39,9 +38,8 @@ func NewNoticer(noticeHeight int) *Noticer {
 	})
 
 	return &Noticer{
-		noticeHeight: noticeHeight,
-		notices:      []*notice{},
-		font:         font,
+		notices: []*notice{},
+		font:    font,
 	}
 }
 
@@ -65,7 +63,7 @@ func (n *Noticer) Update() error {
 
 func (n *Noticer) Draw(screen *ebiten.Image) {
 	for i, notice := range n.notices {
-		img := ebiten.NewImage(screen.Bounds().Dx()-20, n.noticeHeight)
+		img := ebiten.NewImage(screen.Bounds().Dx()-20, constant.NoticeHeight)
 		switch notice.level {
 		case INFO:
 			img.Fill(color.RGBA{R: 58, G: 110, B: 165, A: 255})
@@ -76,7 +74,7 @@ func (n *Noticer) Draw(screen *ebiten.Image) {
 		}
 		op := &ebiten.DrawImageOptions{}
 		x := 10
-		y := screen.Bounds().Dy() - 10 - ((n.noticeHeight + 10) * (i + 1))
+		y := screen.Bounds().Dy() - 10 - ((constant.NoticeHeight + 10) * (i + 1))
 		op.GeoM.Translate(float64(x), float64(y))
 		screen.DrawImage(img, op)
 		bs := text.BoundString(n.font, notice.message)

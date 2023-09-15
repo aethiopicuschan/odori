@@ -12,15 +12,15 @@ import (
 	"github.com/aethiopicuschan/odori/sprite"
 	"github.com/aethiopicuschan/odori/ui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type Game struct {
-	components   []ui.Component
-	exportButton *ui.Button
-	noticer      *ui.Noticer
-	explorer     *ui.Explorer
-	player       *ui.Player
+	components []ui.Component
+	buttons    []*ui.Button
+	noticer    *ui.Noticer
+	explorer   *ui.Explorer
+	player     *ui.Player
+	name       string
 }
 
 func NewGame() ebiten.Game {
@@ -30,21 +30,23 @@ func NewGame() ebiten.Game {
 	buttonWidth := constant.MenuWidth - buttonOffset*2
 	buttonHeight := 30
 	buttonMap := map[string]func(){}
+	buttonMap["New animation"] = game.newAnimation
 	buttonMap["Load files"] = game.loadFiles
 	buttonMap["Load sprite sheet"] = game.loadSpriteSheet
 	buttonMap["Export"] = game.export
 	buttonList := []string{
+		"New animation",
+		"Export",
 		"Load files",
 		"Load sprite sheet",
-		"Export",
 	}
 	buttons := []ui.Component{}
 	i := 0
 	for _, name := range buttonList {
 		button := ui.NewButton(buttonOffset, buttonOffset*(i+1)+buttonHeight*i, buttonWidth, buttonHeight, name, buttonMap[name])
-		if name == "Export" {
+		game.buttons = append(game.buttons, button)
+		if name != "New animation" {
 			button.SetDisabled(true)
-			game.exportButton = button
 		}
 		buttons = append(buttons, button)
 		i++
@@ -52,27 +54,22 @@ func NewGame() ebiten.Game {
 	menu := ui.NewMenu(buttons)
 	game.components = append(game.components, menu)
 
-	game.explorer = ui.NewExplorer(func(s sprite.Sprite) {
-		game.player.Append(s)
-	})
-	game.components = append(game.components, game.explorer)
-
-	noticeHeight := 30
-	game.noticer = ui.NewNoticer(noticeHeight)
-
-	game.player = ui.NewPlayer(game.noticer, game.changeAnimationSize)
-	game.components = append(game.components, game.player)
-
+	game.noticer = ui.NewNoticer()
 	game.components = append(game.components, game.noticer)
+
 	return game
 }
 
 func (g *Game) Update() error {
 	ebiten.SetCursorShape(ebiten.CursorShapeDefault)
-	if g.player.CanExport() {
-		g.exportButton.SetDisabled(false)
-	} else {
-		g.exportButton.SetDisabled(true)
+	for _, button := range g.buttons {
+		if button.Label() == "Export" {
+			if g.player != nil && g.player.CanExport() {
+				button.SetDisabled(false)
+			} else {
+				button.SetDisabled(true)
+			}
+		}
 	}
 	for _, c := range g.components {
 		c.Update()
@@ -85,7 +82,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, c := range g.components {
 		c.Draw(screen)
 	}
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS: %0.2f\nTPS: %0.2f", ebiten.ActualFPS(), ebiten.ActualTPS()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -97,6 +93,48 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 		}
 	}
 	return outsideWidth, outsideHeight
+}
+
+func (g *Game) newAnimation() {
+	if g.name != "" {
+		return
+	}
+	ch := make(chan io.EntryResult)
+	go io.Entry(ch, "New Animation", "Enter the project name of your new animation", "animation")
+	result := <-ch
+	close(ch)
+	if result.Err != nil {
+		if result.Err.Error() != "dialog canceled" {
+			g.noticer.AddNotice(ui.ERROR, result.Err.Error())
+		}
+		return
+	}
+	if result.Input == "" {
+		return
+	}
+	g.name = result.Input
+	ebiten.SetWindowTitle(constant.WindowTitle + " - " + g.name)
+	for _, button := range g.buttons {
+		if button.Label() == "New animation" {
+			button.SetDisabled(true)
+		} else if button.Label() != "Export" {
+			button.SetDisabled(false)
+		}
+	}
+	for i, component := range g.components {
+		// noticerを一度消す
+		if component == g.noticer {
+			g.components = append(g.components[:i], g.components[i+1:]...)
+			break
+		}
+	}
+	g.explorer = ui.NewExplorer(func(s sprite.Sprite) {
+		g.player.Append(s)
+	})
+	g.components = append(g.components, g.explorer)
+	g.player = ui.NewPlayer(g.noticer, g.changeAnimationSize)
+	g.components = append(g.components, g.player)
+	g.components = append(g.components, g.noticer)
 }
 
 func (g *Game) loadFiles() {
@@ -226,7 +264,8 @@ func (g *Game) export() {
 			spriteSheet = result.PointsMap
 		}
 		// AnimationのJSON出力
-		bytes, err := json.MarshalIndent(animation.AnimationWithSpriteSheet{
+		bytes, err := json.MarshalIndent(animation.AnimationP{
+			Name:        g.name,
 			Animation:   raw,
 			SpriteSheet: spriteSheet,
 		}, "", "  ")
