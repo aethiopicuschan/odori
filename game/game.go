@@ -164,8 +164,9 @@ func (g *Game) loadSpriteSheet() {
 
 func (g *Game) changeAnimationSize() {
 	go func() {
+		raw := g.animation.RawAnimation()
 		ch := make(chan io.EntryResult)
-		go io.Entry(ch, "Change animation size", "Enter the size of animation in pixel", fmt.Sprintf("%dx%d", g.animation.AnimationWidth, g.animation.AnimationHeight))
+		go io.Entry(ch, "Change animation size", "Enter the size of animation in pixel", fmt.Sprintf("%dx%d", raw.Width, raw.Height))
 		result := <-ch
 		close(ch)
 		if result.Err != nil {
@@ -184,12 +185,15 @@ func (g *Game) changeAnimationSize() {
 			g.noticer.AddNotice(ui.ERROR, "Invalid size!")
 			return
 		}
-		g.animation.AnimationWidth = animationWidth
-		g.animation.AnimationHeight = animationHeight
+		raw.Width = animationWidth
+		raw.Height = animationHeight
 		g.noticer.AddNotice(ui.INFO, fmt.Sprintf("Animation size is changed to %dx%d", animationWidth, animationHeight))
 	}()
 }
 
 func (g *Game) export() {
+	if !g.animation.CanExport() {
+		return
+	}
 	g.noticer.AddNotice(ui.ERROR, "Not implemented yet!")
 }

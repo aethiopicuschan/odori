@@ -22,8 +22,7 @@ type Animation struct {
 	height              int
 	offsetY             int
 	offsetX             int
-	AnimationWidth      int
-	AnimationHeight     int
+	animation           *animation.Animation
 	font                font.Face
 	customLinks         []*Link
 	parts               []*animation.Part
@@ -52,13 +51,12 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 
 	a := &Animation{}
 	a.noticer = noticer
+	a.animation = animation.NewAnimation()
 	a.changeAnimationSize = changeAnimationSize
 	a.offsetX = constant.MenuWidth
 	a.offsetY = h / 3
 	a.width = w - a.offsetX
 	a.height = h - a.offsetY
-	a.AnimationWidth = constant.DefaultAnimationSize
-	a.AnimationHeight = constant.DefaultAnimationSize
 	a.font = font
 	a.parts = []*animation.Part{}
 	a.currentPart = -1
@@ -259,18 +257,18 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 			scale := 1.0
 			width := part.Sprite.Image.Bounds().Dx()
 			height := part.Sprite.Image.Bounds().Dy()
-			if width < a.AnimationWidth && height < a.AnimationHeight {
+			if width < a.animation.Width && height < a.animation.Height {
 				if width > height {
-					scale = float64(a.AnimationWidth / width)
+					scale = float64(a.animation.Width / width)
 				} else {
-					scale = float64(a.AnimationHeight / height)
+					scale = float64(a.animation.Height / height)
 				}
 			}
-			if width > a.AnimationWidth || height > a.AnimationHeight {
+			if width > a.animation.Width || height > a.animation.Height {
 				if width > height {
-					scale = float64(a.AnimationWidth) / float64(width)
+					scale = float64(a.animation.Width) / float64(width)
 				} else {
-					scale = float64(a.AnimationHeight) / float64(height)
+					scale = float64(a.animation.Height) / float64(height)
 				}
 			}
 			part.Scale = scale
@@ -370,7 +368,7 @@ func (a *Animation) Update() error {
 	}
 	for _, l := range a.customLinks {
 		if l.id == "Size" {
-			l.SetLabel(fmt.Sprintf("Size: %dx%d", a.AnimationWidth, a.AnimationHeight))
+			l.SetLabel(fmt.Sprintf("Size: %dx%d", a.animation.Width, a.animation.Height))
 		}
 		if l.id == "TPS" {
 			l.SetLabel(fmt.Sprintf("TPS : %d", ebiten.TPS()))
@@ -513,15 +511,15 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	defer screen.DrawImage(bg, bgOp)
 
 	// Animation Frame.
-	frameLine := ebiten.NewImage(a.AnimationWidth+2, a.AnimationHeight+2)
+	frameLine := ebiten.NewImage(a.animation.Width+2, a.animation.Height+2)
 	frameLine.Fill(color.Black)
-	frame := ebiten.NewImage(a.AnimationWidth, a.AnimationHeight)
+	frame := ebiten.NewImage(a.animation.Width, a.animation.Height)
 	frame.Fill(color.White)
 	{
 		isGray := false
 		boxSize := constant.DefaultAnimationSize / 5
-		maxX := int(math.Ceil(float64(a.AnimationWidth) / float64(boxSize)))
-		maxY := int(math.Ceil(float64(a.AnimationHeight) / float64(boxSize)))
+		maxX := int(math.Ceil(float64(a.animation.Width) / float64(boxSize)))
+		maxY := int(math.Ceil(float64(a.animation.Height) / float64(boxSize)))
 		boxGray := ebiten.NewImage(boxSize, boxSize)
 		boxGray.Fill(color.Gray{Y: constant.ExplorerGrayY})
 		boxTransparent := ebiten.NewImage(boxSize, boxSize)
@@ -543,8 +541,8 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
-	x := float64(bg.Bounds().Dx()/2) - float64(a.AnimationWidth)/2
-	y := float64(bg.Bounds().Dy()/3) - float64(a.AnimationHeight)/2
+	x := float64(bg.Bounds().Dx()/2) - float64(a.animation.Width)/2
+	y := float64(bg.Bounds().Dy()/3) - float64(a.animation.Height)/2
 	frameOp := &ebiten.DrawImageOptions{}
 	frameLineOp := &ebiten.DrawImageOptions{}
 	frameOp.GeoM.Translate(float64(x), float64(y))
@@ -568,7 +566,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 			}
 			op.GeoM.Scale(scale, scale)
 			op.GeoM.Translate(-((float64(img.Bounds().Dx()-diffX))*scale)/2, -((float64(img.Bounds().Dy()-diffY))*scale)/2)
-			op.GeoM.Translate(float64(a.AnimationWidth/2), float64(a.AnimationHeight/2))
+			op.GeoM.Translate(float64(a.animation.Width/2), float64(a.animation.Height/2))
 			frame.DrawImage(img, op)
 		}
 	}
@@ -640,4 +638,6 @@ func (a *Animation) CanExport() bool {
 	return len(a.parts) > 0
 }
 
-func (a *Animation) Export()
+func (a *Animation) RawAnimation() *animation.Animation {
+	return a.animation
+}
