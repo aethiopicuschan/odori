@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/aethiopicuschan/odori/animation"
 	"github.com/aethiopicuschan/odori/constant"
 	"github.com/aethiopicuschan/odori/io"
 	"github.com/aethiopicuschan/odori/sprite"
@@ -16,26 +17,6 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
-type part struct {
-	sprite  sprite.Sprite
-	scale   float64
-	diffX   int
-	diffY   int
-	reverse bool
-	length  int
-}
-
-func newPart(sprite sprite.Sprite, len int) *part {
-	return &part{
-		sprite:  sprite,
-		scale:   1.0,
-		diffX:   0,
-		diffY:   0,
-		reverse: false,
-		length:  len,
-	}
-}
-
 type Animation struct {
 	width               int
 	height              int
@@ -45,7 +26,7 @@ type Animation struct {
 	AnimationHeight     int
 	font                font.Face
 	customLinks         []*Link
-	parts               []*part
+	parts               []*animation.Part
 	indexes             []int
 	currentPart         int
 	playing             bool
@@ -79,7 +60,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 	a.AnimationWidth = constant.DefaultAnimationSize
 	a.AnimationHeight = constant.DefaultAnimationSize
 	a.font = font
-	a.parts = []*part{}
+	a.parts = []*animation.Part{}
 	a.currentPart = -1
 	a.indexes = []int{}
 	a.playing = false
@@ -151,7 +132,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				}
 				ch := make(chan io.EntryResult)
 				part := a.parts[a.currentPart]
-				go io.Entry(ch, "Change scale", "Enter the scale", fmt.Sprintf("%0.2f", part.scale))
+				go io.Entry(ch, "Change scale", "Enter the scale", fmt.Sprintf("%0.2f", part.Scale))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
@@ -170,7 +151,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 					a.noticer.AddNotice(ERROR, "Scale must be greater than 0")
 					return
 				}
-				part.scale = scale
+				part.Scale = scale
 			}()
 		}),
 		NewLink(0, 0, "DiffX", func() {
@@ -181,7 +162,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				}
 				ch := make(chan io.EntryResult)
 				part := a.parts[a.currentPart]
-				go io.Entry(ch, "Change DiffX", "Enter the diff of position from center.", fmt.Sprintf("%d", part.diffX))
+				go io.Entry(ch, "Change DiffX", "Enter the diff of position from center.", fmt.Sprintf("%d", part.DiffX))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
@@ -196,7 +177,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 					a.noticer.AddNotice(ERROR, err.Error())
 					return
 				}
-				part.diffX = diffX
+				part.DiffX = diffX
 			}()
 		}),
 		NewLink(0, 0, "DiffY", func() {
@@ -207,7 +188,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				}
 				ch := make(chan io.EntryResult)
 				part := a.parts[a.currentPart]
-				go io.Entry(ch, "Change DiffY", "Enter the diff of position from center.", fmt.Sprintf("%d", part.diffY))
+				go io.Entry(ch, "Change DiffY", "Enter the diff of position from center.", fmt.Sprintf("%d", part.DiffY))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
@@ -222,7 +203,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 					a.noticer.AddNotice(ERROR, err.Error())
 					return
 				}
-				part.diffY = diffY
+				part.DiffY = diffY
 			}()
 		}),
 		NewLink(0, 0, "Reverse", func() {
@@ -231,7 +212,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				return
 			}
 			part := a.parts[a.currentPart]
-			part.reverse = !part.reverse
+			part.Reverse = !part.Reverse
 		}),
 		NewLink(0, 0, "Len", func() {
 			a.playing = false
@@ -241,7 +222,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				}
 				ch := make(chan io.EntryResult)
 				part := a.parts[a.currentPart]
-				go io.Entry(ch, "Change Length", fmt.Sprintf("Enter the length of ticks. (%d ticks means 1sec)", ebiten.TPS()), fmt.Sprintf("%d", part.length))
+				go io.Entry(ch, "Change Length", fmt.Sprintf("Enter the length of ticks. (%d ticks means 1sec)", ebiten.TPS()), fmt.Sprintf("%d", part.Length))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
@@ -260,7 +241,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 					a.noticer.AddNotice(ERROR, "Length must be greater than 0")
 					return
 				}
-				part.length = length
+				part.Length = length
 				// lengthが変わった関係で諸々のパラメータをリセットする必要がある
 				a.resetIndexes()
 			}()
@@ -272,12 +253,12 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				return
 			}
 			part := a.parts[a.currentPart]
-			if part.sprite.IsEmpty() {
+			if part.Sprite.IsEmpty() {
 				return
 			}
 			scale := 1.0
-			width := part.sprite.Image.Bounds().Dx()
-			height := part.sprite.Image.Bounds().Dy()
+			width := part.Sprite.Image.Bounds().Dx()
+			height := part.Sprite.Image.Bounds().Dy()
 			if width < a.AnimationWidth && height < a.AnimationHeight {
 				if width > height {
 					scale = float64(a.AnimationWidth / width)
@@ -292,7 +273,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 					scale = float64(a.AnimationHeight) / float64(height)
 				}
 			}
-			part.scale = scale
+			part.Scale = scale
 		}),
 		NewLink(0, 0, "Reset", func() {
 			a.playing = false
@@ -308,11 +289,11 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				if !result.Answer {
 					return
 				}
-				part.scale = 1.0
-				part.diffX = 0
-				part.diffY = 0
-				part.reverse = false
-				part.length = ebiten.TPS()
+				part.Scale = 1.0
+				part.DiffX = 0
+				part.DiffY = 0
+				part.Reverse = false
+				part.Length = ebiten.TPS()
 				a.resetIndexes()
 			}()
 		}),
@@ -330,7 +311,7 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 					return
 				}
 				if len(a.parts) == 1 {
-					a.parts = []*part{}
+					a.parts = []*animation.Part{}
 					a.currentPart = -1
 				} else {
 					a.parts = append(a.parts[:a.currentPart], a.parts[a.currentPart+1:]...)
@@ -358,7 +339,7 @@ func (a *Animation) resetIndexes() {
 			a.currentTick = a.maxTick
 		}
 		a.indexes = append(a.indexes, a.maxTick)
-		a.maxTick += p.length
+		a.maxTick += p.Length
 	}
 }
 
@@ -367,7 +348,7 @@ func (a *Animation) Append(sprite sprite.Sprite) {
 		a.currentPart = 0
 	}
 	len := ebiten.TPS()
-	a.parts = append(a.parts, newPart(sprite, len))
+	a.parts = append(a.parts, animation.NewPart(sprite, len))
 	a.indexes = append(a.indexes, a.maxTick)
 	a.currentTick = a.maxTick
 	a.maxTick += len
@@ -420,22 +401,22 @@ func (a *Animation) Update() error {
 		// カスタムリンク
 		for _, l := range a.customLinks {
 			if l.id == "Scale" {
-				l.SetLabel(fmt.Sprintf("Scale: %0.2f", part.scale))
+				l.SetLabel(fmt.Sprintf("Scale: %0.2f", part.Scale))
 			}
 			if l.id == "DiffX" {
-				l.SetLabel(fmt.Sprintf("DiffX: %d", part.diffX))
+				l.SetLabel(fmt.Sprintf("DiffX: %d", part.DiffX))
 			}
 			if l.id == "DiffY" {
-				l.SetLabel(fmt.Sprintf("DiffY: %d", part.diffY))
+				l.SetLabel(fmt.Sprintf("DiffY: %d", part.DiffY))
 			}
 			if l.id == "Reverse" {
-				l.SetLabel(fmt.Sprintf("Reverse: %t", part.reverse))
+				l.SetLabel(fmt.Sprintf("Reverse: %t", part.Reverse))
 			}
 			if l.id == "Len" {
-				l.SetLabel(fmt.Sprintf("Len  : %d ticks (%0.2f sec)", part.length, float64(part.length)/float64(ebiten.TPS())))
+				l.SetLabel(fmt.Sprintf("Len  : %d ticks (%0.2f sec)", part.Length, float64(part.Length)/float64(ebiten.TPS())))
 			}
 			l.SetDisabled(a.playing)
-			if part.sprite.IsEmpty() && l.id != "Len" && l.id != "Reset" && l.id != "Delete" && l.id != "Size" {
+			if part.Sprite.IsEmpty() && l.id != "Len" && l.id != "Reset" && l.id != "Delete" && l.id != "Size" {
 				l.SetDisabled(true)
 			}
 			l.Update()
@@ -573,12 +554,12 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	// Draw part.
 	if a.currentPart >= 0 {
 		part := a.parts[a.currentPart]
-		scale := part.scale
-		diffX := part.diffX
-		diffY := part.diffY
-		reverse := part.reverse
-		if !part.sprite.IsEmpty() {
-			img := part.sprite.Image
+		scale := part.Scale
+		diffX := part.DiffX
+		diffY := part.DiffY
+		reverse := part.Reverse
+		if !part.Sprite.IsEmpty() {
+			img := part.Sprite.Image
 			op := &ebiten.DrawImageOptions{}
 			if reverse {
 				op.GeoM.Scale(-1, 1)
@@ -614,7 +595,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 		player.DrawImage(indexPos, indexPosOp)
 		if i == a.currentPart {
 			// Fill current part.
-			width := int(math.Ceil(float64(a.parts[i].length) / float64(a.maxTick) * float64(player.Bounds().Dx())))
+			width := int(math.Ceil(float64(a.parts[i].Length) / float64(a.maxTick) * float64(player.Bounds().Dx())))
 			currentPart := ebiten.NewImage(width, player.Bounds().Dy())
 			currentPart.Fill(color.Gray{Y: constant.PlayerCurrentGrayY})
 			currentPartOp := &ebiten.DrawImageOptions{}
@@ -658,3 +639,5 @@ func (a *Animation) Layout(outsideWidth, outsideHeight int) {
 func (a *Animation) CanExport() bool {
 	return len(a.parts) > 0
 }
+
+func (a *Animation) Export()
