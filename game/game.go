@@ -62,6 +62,7 @@ func NewGame() ebiten.Game {
 }
 
 func (g *Game) Update() error {
+	// TODO 開いているプロジェクトがあるときにWindowを閉じるときは確認する
 	ebiten.SetCursorShape(ebiten.CursorShapeDefault)
 	for _, button := range g.buttons {
 		if button.Label() == "Export" {
@@ -270,8 +271,9 @@ func (g *Game) export() {
 			spriteSheet = result.PointsMap
 		}
 		// AnimationのJSON出力
+		name := filepath.Base(g.name)
 		bytes, err := json.MarshalIndent(animation.AnimationP{
-			Name:        g.name,
+			Name:        name,
 			Animation:   raw,
 			SpriteSheet: spriteSheet,
 		}, "", "  ")
@@ -280,7 +282,8 @@ func (g *Game) export() {
 			return
 		}
 		ch := make(chan error)
-		go io.Write(ch, bytes, "./animation.json")
+		base := name + ".json"
+		go io.Write(ch, bytes, fmt.Sprintf("./%s", base))
 		err = <-ch
 		close(ch)
 		if err != nil {
