@@ -96,7 +96,7 @@ func (e *Explorer) Update() error {
 
 	// which sprite is cursor on?
 	e.cursolOn = -1
-	if len(e.sprites) > 1 && isCursorOnExplorer {
+	if len(e.sprites) > 0 && isCursorOnExplorer {
 		zeroX := constant.MenuWidth
 		xOnExplorer := cursorX - zeroX
 		yOnExplorer := cursorY - int(e.scrollOffset)
