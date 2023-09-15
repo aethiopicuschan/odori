@@ -3,11 +3,11 @@ module github.com/aethiopicuschan/odori
 go 1.21.1
 
 require (
-	github.com/aethiopicuschan/kaban v0.0.4
+	github.com/aethiopicuschan/kaban v0.1.0
 	github.com/google/uuid v1.3.1
 	github.com/hajimehoshi/ebiten/v2 v2.5.9
 	github.com/ncruces/zenity v0.10.10
-	golang.org/x/image v0.10.0
+	golang.org/x/image v0.12.0
 )
 
 require (
@@ -18,9 +18,10 @@ require (
 	github.com/jezek/xgb v1.1.0 // indirect
 	github.com/josephspurrier/goversioninfo v1.4.0 // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
-	golang.org/x/exp/shiny v0.0.0-20220827204233-334a2380cb91 // indirect
-	golang.org/x/mobile v0.0.0-20230301163155-e0f57694e12c // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
-	golang.org/x/text v0.11.0 // indirect
+	golang.org/x/exp/shiny v0.0.0-20230905200255-921286631fa9 // indirect
+	golang.org/x/mobile v0.0.0-20230906132913-2077a3224571 // indirect
+	golang.org/x/sync v0.3.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

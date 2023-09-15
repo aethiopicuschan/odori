@@ -257,7 +257,7 @@ func (g *Game) export() {
 		for _, sprite := range m {
 			sprites = append(sprites, sprite)
 		}
-		spriteSheet := map[string]image.Point{}
+		spriteSheet := map[string]image.Rectangle{}
 		// スプライトシートの出力
 		if len(sprites) != 0 {
 			ch := make(chan io.WriteSpriteSheetResult)
@@ -268,7 +268,7 @@ func (g *Game) export() {
 				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
 				return
 			}
-			spriteSheet = result.PointsMap
+			spriteSheet = result.RectsMap
 		}
 		// AnimationのJSON出力
 		name := filepath.Base(g.name)

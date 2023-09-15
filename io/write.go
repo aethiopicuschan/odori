@@ -20,8 +20,8 @@ func Write(ch chan error, bytes []byte, path string) {
 }
 
 type WriteSpriteSheetResult struct {
-	PointsMap map[string]image.Point
-	Err       error
+	RectsMap map[string]image.Rectangle
+	Err      error
 }
 
 func WriteSpriteSheet(ch chan WriteSpriteSheetResult, sprites []sprite.Sprite, path string) {
@@ -35,7 +35,7 @@ func WriteSpriteSheet(ch chan WriteSpriteSheetResult, sprites []sprite.Sprite, p
 			imgs[i] = s.Image
 		}
 	}
-	img, points, err := merge.Merge(imgs)
+	img, rects, err := merge.Merge(imgs)
 	if err != nil {
 		result.Err = err
 		return
@@ -45,8 +45,8 @@ func WriteSpriteSheet(ch chan WriteSpriteSheetResult, sprites []sprite.Sprite, p
 		result.Err = err
 		return
 	}
-	result.PointsMap = make(map[string]image.Point)
-	for i, point := range points {
-		result.PointsMap[sprites[i].Id()] = point
+	result.RectsMap = make(map[string]image.Rectangle)
+	for i, rect := range rects {
+		result.RectsMap[sprites[i].Id()] = rect
 	}
 }
