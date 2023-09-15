@@ -1,5 +1,5 @@
-github.com/aethiopicuschan/kaban v0.0.3 h1:HRG8WtMbjLDmOjUn/+6N+IS5k0Y21sXLQWopvqAhm7k=
-github.com/aethiopicuschan/kaban v0.0.3/go.mod h1:2dl7wV1YGXJ1Dwkyv8C3flrzkonkhW71XOO8JpUR+cw=
+github.com/aethiopicuschan/kaban v0.0.4 h1:qQ5Z6AEE4y23YGVzYmwB/XKO45sROVsTqhVekhahcJE=
+github.com/aethiopicuschan/kaban v0.0.4/go.mod h1:2dl7wV1YGXJ1Dwkyv8C3flrzkonkhW71XOO8JpUR+cw=
 github.com/akavel/rsrc v0.10.2 h1:Zxm8V5eI1hW4gGaYsJQUhxpjkENuG91ki8B4zCrvEsw=
 github.com/akavel/rsrc v0.10.2/go.mod h1:uLoCtb9J+EyAqh+26kdrTgmzRBFPGOolLWKpdxkKq+c=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
@@ -10,6 +10,8 @@ github.com/ebitengine/purego v0.4.0 h1:RQVuMIxQPQ5iCGEJvjQ17YOK+1tMKjVau2FUMvXH4
 github.com/ebitengine/purego v0.4.0/go.mod h1:ah1In8AOtksoNK6yk5z1HTJeUkC1Ez4Wk2idgGslMwQ=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b h1:GgabKamyOYguHqHjSkDACcgoPIz3w0Dis/zJ1wyHHHU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
+github.com/google/uuid v1.3.1 h1:KjJaJ9iWZ3jOFZIf1Lqf4laDRCasjl0BCmnEGxkdLb4=
+github.com/google/uuid v1.3.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.3 h1:jmq/TMNj352V062Tr5e3hAoipkoxCbY1JWTzor0zNps=
 github.com/hajimehoshi/bitmapfont/v2 v2.2.3/go.mod h1:sWM8ejdkGSXaQGlZcegMRx4DyEPOWYyXqsBKIs+Yhzk=
 github.com/hajimehoshi/ebiten/v2 v2.5.9 h1:xwPrSr4rgB7LgdAKBH9bW7YT8EBBpiruAzykf6QFCv8=

@@ -2,7 +2,7 @@ package io
 
 import (
 	"image"
-	_ "image/png"
+	"image/png"
 	"os"
 )
 
@@ -13,5 +13,15 @@ func readPng(path string) (img image.Image, err error) {
 	}
 	defer file.Close()
 	img, _, err = image.Decode(file)
+	return
+}
+
+func writePng(img image.Image, path string) (err error) {
+	file, err := os.Create(path)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	err = png.Encode(file, img)
 	return
 }

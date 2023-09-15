@@ -3,7 +3,8 @@ module github.com/aethiopicuschan/odori
 go 1.21.1
 
 require (
-	github.com/aethiopicuschan/kaban v0.0.3
+	github.com/aethiopicuschan/kaban v0.0.4
+	github.com/google/uuid v1.3.1
 	github.com/hajimehoshi/ebiten/v2 v2.5.9
 	github.com/ncruces/zenity v0.10.10
 	golang.org/x/image v0.10.0
