@@ -17,7 +17,7 @@ import (
 	"golang.org/x/image/font/opentype"
 )
 
-type Animation struct {
+type Player struct {
 	width               int
 	height              int
 	offsetY             int
@@ -30,17 +30,17 @@ type Animation struct {
 	playing             bool
 	currentTick         int
 	maxTick             int
-	playerButtons       []*Button
-	playerX             int
-	playerY             int
-	playerWidth         int
-	playerHeight        int
-	cursolOnPlayer      bool
+	buttons             []*Button
+	barX                int
+	barY                int
+	barWidth            int
+	barHeight           int
+	cursolOnBar         bool
 	noticer             *Noticer
 	changeAnimationSize func()
 }
 
-func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
+func NewPlayer(noticer *Noticer, changeAnimationSize func()) *Player {
 	w, h := ebiten.WindowSize()
 	tt, _ := opentype.Parse(goregular.TTF)
 	font, _ := opentype.NewFace(tt, &opentype.FaceOptions{
@@ -48,236 +48,236 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 		DPI:  72,
 	})
 
-	a := &Animation{}
-	a.noticer = noticer
-	a.animation = animation.NewAnimation()
-	a.changeAnimationSize = changeAnimationSize
-	a.offsetX = constant.MenuWidth
-	a.offsetY = h / 3
-	a.width = w - a.offsetX
-	a.height = h - a.offsetY
-	a.font = font
-	a.currentPart = -1
-	a.indexes = []int{}
-	a.playing = false
-	a.currentTick = 0
-	a.maxTick = 0
-	a.playerX = 0
-	a.playerY = 0
-	a.playerWidth = 0
-	a.playerHeight = 0
-	a.cursolOnPlayer = false
-	a.playerButtons = []*Button{
+	p := &Player{}
+	p.noticer = noticer
+	p.animation = animation.NewAnimation()
+	p.changeAnimationSize = changeAnimationSize
+	p.offsetX = constant.MenuWidth
+	p.offsetY = h / 3
+	p.width = w - p.offsetX
+	p.height = h - p.offsetY
+	p.font = font
+	p.currentPart = -1
+	p.indexes = []int{}
+	p.playing = false
+	p.currentTick = 0
+	p.maxTick = 0
+	p.barX = 0
+	p.barY = 0
+	p.barWidth = 0
+	p.barHeight = 0
+	p.cursolOnBar = false
+	p.buttons = []*Button{
 		NewButton(0, 0, 20, 30, "<<", func() {
-			if a.playing {
+			if p.playing {
 				return
 			}
-			if a.currentPart == 0 {
-				a.currentTick = 0
-			} else if a.currentPart > 0 {
-				a.currentTick = a.indexes[a.currentPart-1]
-				a.currentPart -= 1
+			if p.currentPart == 0 {
+				p.currentTick = 0
+			} else if p.currentPart > 0 {
+				p.currentTick = p.indexes[p.currentPart-1]
+				p.currentPart -= 1
 			}
 		}),
 		NewButton(0, 0, 20, 30, "<", func() {
-			if a.playing {
+			if p.playing {
 				return
 			}
-			a.currentTick--
-			if a.currentTick < 0 {
-				a.currentTick = a.maxTick - 1
+			p.currentTick--
+			if p.currentTick < 0 {
+				p.currentTick = p.maxTick - 1
 			}
 		}),
 		NewButton(0, 0, 40, 30, "Play", func() {
-			if a.maxTick == 0 {
-				a.playing = false
+			if p.maxTick == 0 {
+				p.playing = false
 				return
 			}
-			a.playing = !a.playing
+			p.playing = !p.playing
 		}),
 		NewButton(0, 0, 20, 30, ">", func() {
-			if a.playing {
+			if p.playing {
 				return
 			}
-			a.currentTick++
-			if a.currentTick >= a.maxTick {
-				a.currentTick = 0
+			p.currentTick++
+			if p.currentTick >= p.maxTick {
+				p.currentTick = 0
 			}
 		}),
 		NewButton(0, 0, 20, 30, ">>", func() {
-			if a.playing {
+			if p.playing {
 				return
 			}
-			if a.currentPart+1 < len(a.animation.Parts) {
-				a.currentTick = a.indexes[a.currentPart+1]
-				a.currentPart += 1
+			if p.currentPart+1 < len(p.animation.Parts) {
+				p.currentTick = p.indexes[p.currentPart+1]
+				p.currentPart += 1
 			}
 		}),
 	}
-	a.customLinks = []*Link{
+	p.customLinks = []*Link{
 		NewLink(0, 0, "# Informations", nil),
-		NewLink(0, 0, "Size", a.changeAnimationSize),
+		NewLink(0, 0, "Size", p.changeAnimationSize),
 		NewLink(0, 0, "TPS", nil),
 		NewLink(0, 0, "TotalLen", nil),
 		NewLink(0, 0, "# Properties", nil),
 		NewLink(0, 0, "Scale", func() {
-			a.playing = false
+			p.playing = false
 			go func() {
-				if len(a.animation.Parts) == 0 {
+				if len(p.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.animation.Parts[a.currentPart]
+				part := p.animation.Parts[p.currentPart]
 				go io.Entry(ch, "Change scale", "Enter the scale", fmt.Sprintf("%0.2f", part.Scale))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
 					if result.Err.Error() != "dialog canceled" {
-						a.noticer.AddNotice(ERROR, result.Err.Error())
+						p.noticer.AddNotice(ERROR, result.Err.Error())
 					}
 					return
 				}
 				var scale float64
 				_, err := fmt.Sscanf(result.Input, "%f", &scale)
 				if err != nil {
-					a.noticer.AddNotice(ERROR, err.Error())
+					p.noticer.AddNotice(ERROR, err.Error())
 					return
 				}
 				if scale <= 0 {
-					a.noticer.AddNotice(ERROR, "Scale must be greater than 0")
+					p.noticer.AddNotice(ERROR, "Scale must be greater than 0")
 					return
 				}
 				part.Scale = scale
 			}()
 		}),
 		NewLink(0, 0, "DiffX", func() {
-			a.playing = false
+			p.playing = false
 			go func() {
-				if len(a.animation.Parts) == 0 {
+				if len(p.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.animation.Parts[a.currentPart]
+				part := p.animation.Parts[p.currentPart]
 				go io.Entry(ch, "Change DiffX", "Enter the diff of position from center.", fmt.Sprintf("%d", part.DiffX))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
 					if result.Err.Error() != "dialog canceled" {
-						a.noticer.AddNotice(ERROR, result.Err.Error())
+						p.noticer.AddNotice(ERROR, result.Err.Error())
 					}
 					return
 				}
 				var diffX int
 				_, err := fmt.Sscanf(result.Input, "%d", &diffX)
 				if err != nil {
-					a.noticer.AddNotice(ERROR, err.Error())
+					p.noticer.AddNotice(ERROR, err.Error())
 					return
 				}
 				part.DiffX = diffX
 			}()
 		}),
 		NewLink(0, 0, "DiffY", func() {
-			a.playing = false
+			p.playing = false
 			go func() {
-				if len(a.animation.Parts) == 0 {
+				if len(p.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.animation.Parts[a.currentPart]
+				part := p.animation.Parts[p.currentPart]
 				go io.Entry(ch, "Change DiffY", "Enter the diff of position from center.", fmt.Sprintf("%d", part.DiffY))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
 					if result.Err.Error() != "dialog canceled" {
-						a.noticer.AddNotice(ERROR, result.Err.Error())
+						p.noticer.AddNotice(ERROR, result.Err.Error())
 					}
 					return
 				}
 				var diffY int
 				_, err := fmt.Sscanf(result.Input, "%d", &diffY)
 				if err != nil {
-					a.noticer.AddNotice(ERROR, err.Error())
+					p.noticer.AddNotice(ERROR, err.Error())
 					return
 				}
 				part.DiffY = diffY
 			}()
 		}),
 		NewLink(0, 0, "Reverse", func() {
-			a.playing = false
-			if len(a.animation.Parts) == 0 {
+			p.playing = false
+			if len(p.animation.Parts) == 0 {
 				return
 			}
-			part := a.animation.Parts[a.currentPart]
+			part := p.animation.Parts[p.currentPart]
 			part.Reverse = !part.Reverse
 		}),
 		NewLink(0, 0, "Len", func() {
-			a.playing = false
+			p.playing = false
 			go func() {
-				if len(a.animation.Parts) == 0 {
+				if len(p.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.EntryResult)
-				part := a.animation.Parts[a.currentPart]
+				part := p.animation.Parts[p.currentPart]
 				go io.Entry(ch, "Change Length", fmt.Sprintf("Enter the length of ticks. (%d ticks means 1sec)", ebiten.TPS()), fmt.Sprintf("%d", part.Length))
 				result := <-ch
 				close(ch)
 				if result.Err != nil {
 					if result.Err.Error() != "dialog canceled" {
-						a.noticer.AddNotice(ERROR, result.Err.Error())
+						p.noticer.AddNotice(ERROR, result.Err.Error())
 					}
 					return
 				}
 				var length int
 				_, err := fmt.Sscanf(result.Input, "%d", &length)
 				if err != nil {
-					a.noticer.AddNotice(ERROR, err.Error())
+					p.noticer.AddNotice(ERROR, err.Error())
 					return
 				}
 				if length <= 0 {
-					a.noticer.AddNotice(ERROR, "Length must be greater than 0")
+					p.noticer.AddNotice(ERROR, "Length must be greater than 0")
 					return
 				}
 				part.Length = length
 				// lengthが変わった関係で諸々のパラメータをリセットする必要がある
-				a.resetIndexes()
+				p.resetIndexes()
 			}()
 		}),
 		NewLink(0, 0, "# Operations", nil),
 		NewLink(0, 0, "Auto scale", func() {
-			a.playing = false
-			if len(a.animation.Parts) == 0 {
+			p.playing = false
+			if len(p.animation.Parts) == 0 {
 				return
 			}
-			part := a.animation.Parts[a.currentPart]
+			part := p.animation.Parts[p.currentPart]
 			if part.Sprite.IsEmpty() {
 				return
 			}
 			scale := 1.0
 			width := part.Sprite.Image.Bounds().Dx()
 			height := part.Sprite.Image.Bounds().Dy()
-			if width < a.animation.Width && height < a.animation.Height {
+			if width < p.animation.Width && height < p.animation.Height {
 				if width > height {
-					scale = float64(a.animation.Width / width)
+					scale = float64(p.animation.Width / width)
 				} else {
-					scale = float64(a.animation.Height / height)
+					scale = float64(p.animation.Height / height)
 				}
 			}
-			if width > a.animation.Width || height > a.animation.Height {
+			if width > p.animation.Width || height > p.animation.Height {
 				if width > height {
-					scale = float64(a.animation.Width) / float64(width)
+					scale = float64(p.animation.Width) / float64(width)
 				} else {
-					scale = float64(a.animation.Height) / float64(height)
+					scale = float64(p.animation.Height) / float64(height)
 				}
 			}
 			part.Scale = scale
 		}),
 		NewLink(0, 0, "Reset", func() {
-			a.playing = false
+			p.playing = false
 			go func() {
-				if len(a.animation.Parts) == 0 {
+				if len(p.animation.Parts) == 0 {
 					return
 				}
-				part := a.animation.Parts[a.currentPart]
+				part := p.animation.Parts[p.currentPart]
 				ch := make(chan io.QuestionResult)
 				go io.Question(ch, "Reset", "Are you sure you want to reset properties of current part?")
 				result := <-ch
@@ -290,13 +290,13 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				part.DiffY = 0
 				part.Reverse = false
 				part.Length = ebiten.TPS()
-				a.resetIndexes()
+				p.resetIndexes()
 			}()
 		}),
 		NewLink(0, 0, "Delete", func() {
-			a.playing = false
+			p.playing = false
 			go func() {
-				if len(a.animation.Parts) == 0 {
+				if len(p.animation.Parts) == 0 {
 					return
 				}
 				ch := make(chan io.QuestionResult)
@@ -306,57 +306,57 @@ func NewAnimation(noticer *Noticer, changeAnimationSize func()) *Animation {
 				if !result.Answer {
 					return
 				}
-				if len(a.animation.Parts) == 1 {
-					a.animation.Parts = []*animation.Part{}
-					a.currentPart = -1
+				if len(p.animation.Parts) == 1 {
+					p.animation.Parts = []*animation.Part{}
+					p.currentPart = -1
 				} else {
-					a.animation.Parts = append(a.animation.Parts[:a.currentPart], a.animation.Parts[a.currentPart+1:]...)
-					a.currentPart--
-					if a.currentPart < 0 {
-						a.currentPart = 0
+					p.animation.Parts = append(p.animation.Parts[:p.currentPart], p.animation.Parts[p.currentPart+1:]...)
+					p.currentPart--
+					if p.currentPart < 0 {
+						p.currentPart = 0
 					}
 				}
-				a.resetIndexes()
+				p.resetIndexes()
 			}()
 		}),
 	}
 
-	a.Layout(w, h)
+	p.Layout(w, h)
 
-	return a
+	return p
 }
 
-func (a *Animation) resetIndexes() {
-	a.maxTick = 0
-	a.currentTick = 0
-	a.indexes = []int{}
-	for i, p := range a.animation.Parts {
-		if i == a.currentPart {
-			a.currentTick = a.maxTick
+func (p *Player) resetIndexes() {
+	p.maxTick = 0
+	p.currentTick = 0
+	p.indexes = []int{}
+	for i, part := range p.animation.Parts {
+		if i == p.currentPart {
+			p.currentTick = p.maxTick
 		}
-		a.indexes = append(a.indexes, a.maxTick)
-		a.maxTick += p.Length
+		p.indexes = append(p.indexes, p.maxTick)
+		p.maxTick += part.Length
 	}
 }
 
-func (a *Animation) Append(sprite sprite.Sprite) {
-	if len(a.animation.Parts) == 0 {
-		a.currentPart = 0
+func (p *Player) Append(sprite sprite.Sprite) {
+	if len(p.animation.Parts) == 0 {
+		p.currentPart = 0
 	}
 	len := ebiten.TPS()
-	a.animation.Parts = append(a.animation.Parts, animation.NewPart(sprite, len))
-	a.indexes = append(a.indexes, a.maxTick)
-	a.currentTick = a.maxTick
-	a.maxTick += len
+	p.animation.Parts = append(p.animation.Parts, animation.NewPart(sprite, len))
+	p.indexes = append(p.indexes, p.maxTick)
+	p.currentTick = p.maxTick
+	p.maxTick += len
 }
 
-func (a *Animation) Update() error {
-	partsLen := len(a.animation.Parts)
-	for _, b := range a.playerButtons {
-		b.SetDisabled(partsLen == 0 || a.playing)
+func (p *Player) Update() error {
+	partsLen := len(p.animation.Parts)
+	for _, b := range p.buttons {
+		b.SetDisabled(partsLen == 0 || p.playing)
 		if b.label == "Play" || b.label == "Stop" {
 			b.SetDisabled(partsLen == 0)
-			if a.playing {
+			if p.playing {
 				b.label = "Stop"
 			} else {
 				b.label = "Play"
@@ -364,15 +364,15 @@ func (a *Animation) Update() error {
 		}
 		b.Update()
 	}
-	for _, l := range a.customLinks {
+	for _, l := range p.customLinks {
 		if l.id == "Size" {
-			l.SetLabel(fmt.Sprintf("Size: %dx%d", a.animation.Width, a.animation.Height))
+			l.SetLabel(fmt.Sprintf("Size: %dx%d", p.animation.Width, p.animation.Height))
 		}
 		if l.id == "TPS" {
 			l.SetLabel(fmt.Sprintf("TPS : %d", ebiten.TPS()))
 		}
 		if l.id == "TotalLen" {
-			l.SetLabel(fmt.Sprintf("Len : %d ticks (%0.2f sec)", a.maxTick, float64(a.maxTick)/float64(ebiten.TPS())))
+			l.SetLabel(fmt.Sprintf("Len : %d ticks (%0.2f sec)", p.maxTick, float64(p.maxTick)/float64(ebiten.TPS())))
 		}
 		if l.id == "# Properties" {
 			break
@@ -385,17 +385,17 @@ func (a *Animation) Update() error {
 
 	// Tickと索引を元に現在のパーツを更新
 	if partsLen > 0 {
-		if a.currentTick == 0 {
-			a.currentPart = 0
+		if p.currentTick == 0 {
+			p.currentPart = 0
 		}
-		if a.currentPart+1 < partsLen && a.currentTick >= a.indexes[a.currentPart+1] {
-			a.currentPart++
-		} else if a.currentPart > 0 && a.currentTick < a.indexes[a.currentPart] {
-			a.currentPart--
+		if p.currentPart+1 < partsLen && p.currentTick >= p.indexes[p.currentPart+1] {
+			p.currentPart++
+		} else if p.currentPart > 0 && p.currentTick < p.indexes[p.currentPart] {
+			p.currentPart--
 		}
-		part := a.animation.Parts[a.currentPart]
+		part := p.animation.Parts[p.currentPart]
 		// カスタムリンク
-		for _, l := range a.customLinks {
+		for _, l := range p.customLinks {
 			if l.id == "Scale" {
 				l.SetLabel(fmt.Sprintf("Scale: %0.2f", part.Scale))
 			}
@@ -411,7 +411,7 @@ func (a *Animation) Update() error {
 			if l.id == "Len" {
 				l.SetLabel(fmt.Sprintf("Len  : %d ticks (%0.2f sec)", part.Length, float64(part.Length)/float64(ebiten.TPS())))
 			}
-			l.SetDisabled(a.playing)
+			l.SetDisabled(p.playing)
 			if part.Sprite.IsEmpty() && l.id != "Len" && l.id != "Reset" && l.id != "Delete" && l.id != "Size" {
 				l.SetDisabled(true)
 			}
@@ -419,66 +419,66 @@ func (a *Animation) Update() error {
 		}
 	}
 	// 再生中ならTickを進める
-	if a.playing {
-		a.currentTick++
-		if a.currentTick >= a.maxTick {
-			a.currentTick = 0
+	if p.playing {
+		p.currentTick++
+		if p.currentTick >= p.maxTick {
+			p.currentTick = 0
 		}
 	}
 
-	a.cursolOnPlayer = false
+	p.cursolOnBar = false
 	if !ebiten.IsFocused() {
 		return nil
 	}
 
-	if len(a.animation.Parts) == 0 {
+	if len(p.animation.Parts) == 0 {
 		return nil
 	}
 
 	// Play/Stop by space key.
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		a.playing = !a.playing
+		p.playing = !p.playing
 	}
 
 	// Arrow keys
-	if !a.playing {
+	if !p.playing {
 		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-			a.currentTick--
-			if a.currentTick < 0 {
-				a.currentTick = 0
+			p.currentTick--
+			if p.currentTick < 0 {
+				p.currentTick = 0
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-			a.currentTick++
-			if a.currentTick >= a.maxTick {
-				a.currentTick = a.maxTick - 1
+			p.currentTick++
+			if p.currentTick >= p.maxTick {
+				p.currentTick = p.maxTick - 1
 			}
 		}
 	}
 
 	// Cursor
 	cursorX, cursorY := ebiten.CursorPosition()
-	isCursorOnAnimation := cursorX >= a.offsetX && cursorX <= a.offsetX+a.width && cursorY >= a.offsetY && cursorY <= a.offsetY+a.height
+	isCursorOnAnimation := cursorX >= p.offsetX && cursorX <= p.offsetX+p.width && cursorY >= p.offsetY && cursorY <= p.offsetY+p.height
 	if !isCursorOnAnimation {
 		return nil
 	}
-	xOnAnimation := cursorX - a.offsetX
-	yOnAnimation := cursorY - a.offsetY
-	isCurorOnPlayer := xOnAnimation >= a.playerX && xOnAnimation <= a.playerX+a.playerWidth && yOnAnimation >= a.playerY && yOnAnimation <= a.playerY+a.playerHeight
+	xOnAnimation := cursorX - p.offsetX
+	yOnAnimation := cursorY - p.offsetY
+	isCurorOnPlayer := xOnAnimation >= p.barX && xOnAnimation <= p.barX+p.barWidth && yOnAnimation >= p.barY && yOnAnimation <= p.barY+p.barHeight
 	if !isCurorOnPlayer {
 		return nil
 	}
-	a.cursolOnPlayer = true
+	p.cursolOnBar = true
 	ebiten.SetCursorShape(ebiten.CursorShapePointer)
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-		a.playing = false
-		a.currentTick = int(float64(xOnAnimation-a.playerX) / float64(a.playerWidth) * float64(a.maxTick))
-		if a.currentTick >= a.maxTick {
-			a.currentTick = a.maxTick - 1
+		p.playing = false
+		p.currentTick = int(float64(xOnAnimation-p.barX) / float64(p.barWidth) * float64(p.maxTick))
+		if p.currentTick >= p.maxTick {
+			p.currentTick = p.maxTick - 1
 		}
-		for i, index := range a.indexes {
-			if a.currentTick >= index {
-				a.currentPart = i
+		for i, index := range p.indexes {
+			if p.currentTick >= index {
+				p.currentPart = i
 			} else {
 				break
 			}
@@ -488,18 +488,18 @@ func (a *Animation) Update() error {
 	return nil
 }
 
-func (a *Animation) Draw(screen *ebiten.Image) {
+func (p *Player) Draw(screen *ebiten.Image) {
 	// Fill background.
-	bg := ebiten.NewImage(screen.Bounds().Dx()-constant.MenuWidth, a.height)
+	bg := ebiten.NewImage(screen.Bounds().Dx()-constant.MenuWidth, p.height)
 	bgOp := &ebiten.DrawImageOptions{}
-	bgOp.GeoM.Translate(float64(constant.MenuWidth), float64(a.offsetY))
+	bgOp.GeoM.Translate(float64(constant.MenuWidth), float64(p.offsetY))
 
 	// Play/Stop button.
-	for _, b := range a.playerButtons {
+	for _, b := range p.buttons {
 		defer b.Draw(screen)
 	}
-	for _, cl := range a.customLinks {
-		if cl.id == "# Properties" && len(a.animation.Parts) == 0 {
+	for _, cl := range p.customLinks {
+		if cl.id == "# Properties" && len(p.animation.Parts) == 0 {
 			break
 		}
 		defer cl.Draw(screen)
@@ -509,15 +509,15 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	defer screen.DrawImage(bg, bgOp)
 
 	// Animation Frame.
-	frameLine := ebiten.NewImage(a.animation.Width+2, a.animation.Height+2)
+	frameLine := ebiten.NewImage(p.animation.Width+2, p.animation.Height+2)
 	frameLine.Fill(color.Black)
-	frame := ebiten.NewImage(a.animation.Width, a.animation.Height)
+	frame := ebiten.NewImage(p.animation.Width, p.animation.Height)
 	frame.Fill(color.White)
 	{
 		isGray := false
 		boxSize := constant.DefaultAnimationSize / 5
-		maxX := int(math.Ceil(float64(a.animation.Width) / float64(boxSize)))
-		maxY := int(math.Ceil(float64(a.animation.Height) / float64(boxSize)))
+		maxX := int(math.Ceil(float64(p.animation.Width) / float64(boxSize)))
+		maxY := int(math.Ceil(float64(p.animation.Height) / float64(boxSize)))
 		boxGray := ebiten.NewImage(boxSize, boxSize)
 		boxGray.Fill(color.Gray{Y: constant.ExplorerGrayY})
 		boxTransparent := ebiten.NewImage(boxSize, boxSize)
@@ -539,8 +539,8 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 			}
 		}
 	}
-	x := float64(bg.Bounds().Dx()/2) - float64(a.animation.Width)/2
-	y := float64(bg.Bounds().Dy()/3) - float64(a.animation.Height)/2
+	x := float64(bg.Bounds().Dx()/2) - float64(p.animation.Width)/2
+	y := float64(bg.Bounds().Dy()/3) - float64(p.animation.Height)/2
 	frameOp := &ebiten.DrawImageOptions{}
 	frameLineOp := &ebiten.DrawImageOptions{}
 	frameOp.GeoM.Translate(float64(x), float64(y))
@@ -548,8 +548,8 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	bg.DrawImage(frameLine, frameLineOp)
 
 	// Draw part.
-	if a.currentPart >= 0 {
-		part := a.animation.Parts[a.currentPart]
+	if p.currentPart >= 0 {
+		part := p.animation.Parts[p.currentPart]
 		scale := part.Scale
 		diffX := part.DiffX
 		diffY := part.DiffY
@@ -564,7 +564,7 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 			}
 			op.GeoM.Scale(scale, scale)
 			op.GeoM.Translate(-((float64(img.Bounds().Dx()-diffX))*scale)/2, -((float64(img.Bounds().Dy()-diffY))*scale)/2)
-			op.GeoM.Translate(float64(a.animation.Width/2), float64(a.animation.Height/2))
+			op.GeoM.Translate(float64(p.animation.Width/2), float64(p.animation.Height/2))
 			frame.DrawImage(img, op)
 		}
 	}
@@ -572,28 +572,28 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	bg.DrawImage(frame, frameOp)
 
 	// Player.
-	player := ebiten.NewImage(a.playerWidth, a.playerHeight)
-	player.Fill(color.Gray{Y: constant.PlayerGrayY})
+	player := ebiten.NewImage(p.barWidth, p.barHeight)
+	player.Fill(color.Gray{Y: constant.PlayerBarGrayY})
 	playerOp := &ebiten.DrawImageOptions{}
-	playerOp.GeoM.Translate(10, float64(a.playerY))
-	prs := int(float64(a.currentTick) / float64(a.maxTick) * float64(player.Bounds().Dx()))
+	playerOp.GeoM.Translate(10, float64(p.barY))
+	prs := int(float64(p.currentTick) / float64(p.maxTick) * float64(player.Bounds().Dx()))
 	progress := ebiten.NewImage(2, player.Bounds().Dy())
 	progress.Fill(color.Black)
 	progressOp := &ebiten.DrawImageOptions{}
 	progressOp.GeoM.Translate(float64(prs), 0)
 	// draw index positions
 	indexPos := ebiten.NewImage(2, player.Bounds().Dy())
-	indexPos.Fill(color.Gray{Y: constant.PlayerIndexGrayY})
-	for i, index := range a.indexes {
-		x := int(float64(index) / float64(a.maxTick) * float64(player.Bounds().Dx()))
+	indexPos.Fill(color.Gray{Y: constant.PlayerBarIndexGrayY})
+	for i, index := range p.indexes {
+		x := int(float64(index) / float64(p.maxTick) * float64(player.Bounds().Dx()))
 		indexPosOp := &ebiten.DrawImageOptions{}
 		indexPosOp.GeoM.Translate(float64(x), 0)
 		player.DrawImage(indexPos, indexPosOp)
-		if i == a.currentPart {
+		if i == p.currentPart {
 			// Fill current part.
-			width := int(math.Ceil(float64(a.animation.Parts[i].Length) / float64(a.maxTick) * float64(player.Bounds().Dx())))
+			width := int(math.Ceil(float64(p.animation.Parts[i].Length) / float64(p.maxTick) * float64(player.Bounds().Dx())))
 			currentPart := ebiten.NewImage(width, player.Bounds().Dy())
-			currentPart.Fill(color.Gray{Y: constant.PlayerCurrentGrayY})
+			currentPart.Fill(color.Gray{Y: constant.PlayerBarCurrentGrayY})
 			currentPartOp := &ebiten.DrawImageOptions{}
 			currentPartOp.GeoM.Translate(float64(x), 0)
 			player.DrawImage(currentPart, currentPartOp)
@@ -601,41 +601,41 @@ func (a *Animation) Draw(screen *ebiten.Image) {
 	}
 	player.DrawImage(progress, progressOp)
 	bg.DrawImage(player, playerOp)
-	s := fmt.Sprintf("Part: %d / %d\nTick: %d / %d\nSec: %0.2f / %0.2f", a.currentPart+1, len(a.animation.Parts), a.currentTick, a.maxTick, float64(a.currentTick)/float64(ebiten.TPS()), float64(a.maxTick)/float64(ebiten.TPS()))
-	bs := text.BoundString(a.font, s)
-	text.Draw(bg, s, a.font, 10, a.playerY-bs.Dy(), color.Black)
+	s := fmt.Sprintf("Part: %d / %d\nTick: %d / %d\nSec: %0.2f / %0.2f", p.currentPart+1, len(p.animation.Parts), p.currentTick, p.maxTick, float64(p.currentTick)/float64(ebiten.TPS()), float64(p.maxTick)/float64(ebiten.TPS()))
+	bs := text.BoundString(p.font, s)
+	text.Draw(bg, s, p.font, 10, p.barY-bs.Dy(), color.Black)
 }
 
-func (a *Animation) Layout(outsideWidth, outsideHeight int) {
+func (p *Player) Layout(outsideWidth, outsideHeight int) {
 	// Resize
-	a.height = outsideHeight - outsideHeight/3
-	a.offsetY = outsideHeight / 3
-	a.offsetX = constant.MenuWidth
-	a.width = outsideWidth - a.offsetX
-	a.playerWidth = a.width - 20
-	a.playerHeight = 30
-	a.playerX = 10
-	a.playerY = a.height - a.playerHeight - 10
+	p.height = outsideHeight - outsideHeight/3
+	p.offsetY = outsideHeight / 3
+	p.offsetX = constant.MenuWidth
+	p.width = outsideWidth - p.offsetX
+	p.barWidth = p.width - 20
+	p.barHeight = 30
+	p.barX = 10
+	p.barY = p.height - p.barHeight - 10
 
 	totalWidth := 0
-	for _, b := range a.playerButtons {
+	for _, b := range p.buttons {
 		totalWidth += b.width + 5
 	}
-	startX := a.offsetX + (a.width-totalWidth)/2 + 5
-	for _, b := range a.playerButtons {
-		b.MoveTo(startX, a.offsetY+a.height-75)
+	startX := p.offsetX + (p.width-totalWidth)/2 + 5
+	for _, b := range p.buttons {
+		b.MoveTo(startX, p.offsetY+p.height-75)
 		startX += b.width + 5
 	}
-	defaultBs := text.BoundString(a.font, "DEFAULT")
-	for i, l := range a.customLinks {
-		l.MoveTo(a.offsetX+5, a.offsetY+5+((defaultBs.Dy()+5)*i))
+	defaultBs := text.BoundString(p.font, "DEFAULT")
+	for i, l := range p.customLinks {
+		l.MoveTo(p.offsetX+5, p.offsetY+5+((defaultBs.Dy()+5)*i))
 	}
 }
 
-func (a *Animation) CanExport() bool {
-	return len(a.animation.Parts) > 0
+func (p *Player) CanExport() bool {
+	return len(p.animation.Parts) > 0
 }
 
-func (a *Animation) RawAnimation() *animation.Animation {
-	return a.animation
+func (p *Player) RawAnimation() *animation.Animation {
+	return p.animation
 }

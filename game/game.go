@@ -17,7 +17,7 @@ type Game struct {
 	exportButton *ui.Button
 	noticer      *ui.Noticer
 	explorer     *ui.Explorer
-	animation    *ui.Animation
+	player       *ui.Player
 }
 
 func NewGame() ebiten.Game {
@@ -50,15 +50,15 @@ func NewGame() ebiten.Game {
 	game.components = append(game.components, menu)
 
 	game.explorer = ui.NewExplorer(func(s sprite.Sprite) {
-		game.animation.Append(s)
+		game.player.Append(s)
 	})
 	game.components = append(game.components, game.explorer)
 
 	noticeHeight := 30
 	game.noticer = ui.NewNoticer(noticeHeight)
 
-	game.animation = ui.NewAnimation(game.noticer, game.changeAnimationSize)
-	game.components = append(game.components, game.animation)
+	game.player = ui.NewPlayer(game.noticer, game.changeAnimationSize)
+	game.components = append(game.components, game.player)
 
 	game.components = append(game.components, game.noticer)
 	return game
@@ -66,7 +66,7 @@ func NewGame() ebiten.Game {
 
 func (g *Game) Update() error {
 	ebiten.SetCursorShape(ebiten.CursorShapeDefault)
-	if g.animation.CanExport() {
+	if g.player.CanExport() {
 		g.exportButton.SetDisabled(false)
 	} else {
 		g.exportButton.SetDisabled(true)
@@ -164,7 +164,7 @@ func (g *Game) loadSpriteSheet() {
 
 func (g *Game) changeAnimationSize() {
 	go func() {
-		raw := g.animation.RawAnimation()
+		raw := g.player.RawAnimation()
 		ch := make(chan io.EntryResult)
 		go io.Entry(ch, "Change animation size", "Enter the size of animation in pixel", fmt.Sprintf("%dx%d", raw.Width, raw.Height))
 		result := <-ch
@@ -192,7 +192,7 @@ func (g *Game) changeAnimationSize() {
 }
 
 func (g *Game) export() {
-	if !g.animation.CanExport() {
+	if !g.player.CanExport() {
 		return
 	}
 	g.noticer.AddNotice(ui.ERROR, "Not implemented yet!")
