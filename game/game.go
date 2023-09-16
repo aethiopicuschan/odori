@@ -37,10 +37,12 @@ func NewGame() ebiten.Game {
 	buttonMap["Load sprite sheet"] = game.loadSpriteSheet
 	buttonMap["Import"] = game.importAnimation
 	buttonMap["Export"] = game.exportAnimation
+	buttonMap["Export as GIF"] = game.exportAsGif
 	buttonList := []string{
 		"New animation",
 		"Import",
 		"Export",
+		"Export as GIF",
 		"Load files",
 		"Load sprite sheet",
 	}
@@ -68,7 +70,11 @@ func (g *Game) Update() error {
 		if g.name == "" {
 			button.SetDisabled(button.Label() != "New animation" && button.Label() != "Import")
 		} else {
-			button.SetDisabled(button.Label() == "New animation" || button.Label() == "Import")
+			if button.Label() == "Export" || button.Label() == "Export as GIF" {
+				button.SetDisabled(!g.player.RawAnimation().CanExport())
+			} else {
+				button.SetDisabled(button.Label() == "New animation" || button.Label() == "Import")
+			}
 		}
 	}
 	for _, c := range g.components {
@@ -233,7 +239,7 @@ func (g *Game) changeAnimationSize() {
 }
 
 func (g *Game) exportAnimation() {
-	if !g.player.CanExport() {
+	if !g.player.RawAnimation().CanExport() {
 		return
 	}
 	g.player.Stop()
@@ -258,7 +264,7 @@ func (g *Game) exportAnimation() {
 		}
 		return
 	}
-	dir := filepath.Dir(result.Path)
+	dir := result.Path
 	spriteSheetPath := filepath.Join(dir, g.name+".png")
 	jsonPath := filepath.Join(dir, g.name+".json")
 	if io.IsExist(spriteSheetPath) || io.IsExist(jsonPath) {
@@ -367,4 +373,26 @@ func (g *Game) importAnimation() {
 		g.player.Import(animationP.Animation)
 		g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Project "%s" was imported!`, animationP.Name))
 	}
+}
+
+func (g *Game) exportAsGif() {
+	if !g.player.RawAnimation().CanExport() {
+		return
+	}
+	pickCh := make(chan io.PickResult)
+	go io.Pick(pickCh, io.WithName("Save as..."), io.WithPatterns([]string{"*.gif"}), io.WithToSave(g.name+".gif"))
+	result := <-pickCh
+	close(pickCh)
+	if result.Err != nil {
+		if result.Err.Error() != "dialog canceled" {
+			g.noticer.AddNotice(ui.WARN, result.Err.Error())
+		}
+		return
+	}
+	err := g.player.RawAnimation().ExportAsGif(result.Path)
+	if err != nil {
+		g.noticer.AddNotice(ui.ERROR, err.Error())
+		return
+	}
+	g.noticer.AddNotice(ui.INFO, "Exported!")
 }

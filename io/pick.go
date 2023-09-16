@@ -8,19 +8,28 @@ type PickResult struct {
 }
 
 type PickOption struct {
-	Name     string
-	Patterns []string
+	toSave      bool
+	defaultName string
+	name        string
+	patterns    []string
 }
 
 func WithName(name string) func(*PickOption) {
 	return func(o *PickOption) {
-		o.Name = name
+		o.name = name
 	}
 }
 
 func WithPatterns(patterns []string) func(*PickOption) {
 	return func(o *PickOption) {
-		o.Patterns = patterns
+		o.patterns = patterns
+	}
+}
+
+func WithToSave(defaultName string) func(*PickOption) {
+	return func(o *PickOption) {
+		o.toSave = true
+		o.defaultName = defaultName
 	}
 }
 
@@ -30,20 +39,24 @@ func Pick(ch chan PickResult, options ...func(*PickOption)) {
 		ch <- pickResult
 	}()
 	opt := &PickOption{
-		Name: "Select file",
+		name: "Select file",
 	}
 	for _, o := range options {
 		o(opt)
 	}
 
-	path, err := zenity.SelectFile(
-		zenity.FileFilters{
-			{Name: opt.Name, Patterns: opt.Patterns, CaseFold: true},
-		})
-	if err != nil {
-		pickResult.Err = err
+	if opt.toSave {
+		pickResult.Path, pickResult.Err = zenity.SelectFileSave(
+			zenity.ConfirmOverwrite(),
+			zenity.Filename(opt.defaultName),
+			zenity.FileFilters{
+				{Name: opt.name, Patterns: opt.patterns, CaseFold: true},
+			})
 	} else {
-		pickResult.Path = path
+		pickResult.Path, pickResult.Err = zenity.SelectFile(
+			zenity.FileFilters{
+				{Name: opt.name, Patterns: opt.patterns, CaseFold: true},
+			})
 	}
 }
 
@@ -58,7 +71,7 @@ func PickMultiple(ch chan PickMultipleResult, options ...func(*PickOption)) {
 		ch <- pickResult
 	}()
 	opt := &PickOption{
-		Name: "Select files",
+		name: "Select files",
 	}
 	for _, o := range options {
 		o(opt)
@@ -66,7 +79,7 @@ func PickMultiple(ch chan PickMultipleResult, options ...func(*PickOption)) {
 
 	paths, err := zenity.SelectFileMultiple(
 		zenity.FileFilters{
-			{Name: opt.Name, Patterns: opt.Patterns, CaseFold: true},
+			{Name: opt.name, Patterns: opt.patterns, CaseFold: true},
 		})
 	if err != nil {
 		pickResult.Err = err

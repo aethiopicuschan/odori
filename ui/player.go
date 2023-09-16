@@ -632,10 +632,6 @@ func (p *Player) Layout(outsideWidth, outsideHeight int) {
 	}
 }
 
-func (p *Player) CanExport() bool {
-	return len(p.animation.Parts) > 0
-}
-
 func (p *Player) RawAnimation() *animation.Animation {
 	return p.animation
 }

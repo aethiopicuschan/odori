@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/hajimehoshi/ebiten/v2 v2.5.9
 	github.com/ncruces/zenity v0.10.10
+	github.com/soniakeys/quant v1.0.0
 	golang.org/x/image v0.12.0
 )
 
