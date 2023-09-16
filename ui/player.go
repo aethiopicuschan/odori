@@ -639,3 +639,8 @@ func (p *Player) CanExport() bool {
 func (p *Player) RawAnimation() *animation.Animation {
 	return p.animation
 }
+
+func (p *Player) Import(a *animation.Animation) {
+	p.animation = a
+	p.resetIndexes()
+}

@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func readPng(path string) (img image.Image, err error) {
+func ReadPng(path string) (img image.Image, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return
@@ -16,7 +16,7 @@ func readPng(path string) (img image.Image, err error) {
 	return
 }
 
-func writePng(img image.Image, path string) (err error) {
+func WritePng(img image.Image, path string) (err error) {
 	file, err := os.Create(path)
 	if err != nil {
 		return

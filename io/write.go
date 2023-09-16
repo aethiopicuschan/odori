@@ -40,7 +40,7 @@ func WriteSpriteSheet(ch chan WriteSpriteSheetResult, sprites []sprite.Sprite, p
 		result.Err = err
 		return
 	}
-	err = writePng(img, path)
+	err = WritePng(img, path)
 	if err != nil {
 		result.Err = err
 		return

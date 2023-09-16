@@ -1,14 +1,16 @@
 package io
 
 import (
+	"os"
+
 	"github.com/aethiopicuschan/kaban/detection"
 	"github.com/aethiopicuschan/odori/sprite"
 )
 
 type ReadResult struct {
-	Sprite sprite.Sprite
-	Path   string
-	Err    error
+	Bytes []byte
+	Path  string
+	Err   error
 }
 
 func Read(ch chan ReadResult, path string) {
@@ -18,7 +20,23 @@ func Read(ch chan ReadResult, path string) {
 	defer func() {
 		ch <- result
 	}()
-	img, err := readPng(path)
+	result.Bytes, result.Err = os.ReadFile(path)
+}
+
+type ReadSpriteResult struct {
+	Sprite sprite.Sprite
+	Path   string
+	Err    error
+}
+
+func ReadSprite(ch chan ReadSpriteResult, path string) {
+	result := ReadSpriteResult{
+		Path: path,
+	}
+	defer func() {
+		ch <- result
+	}()
+	img, err := ReadPng(path)
 	if err != nil {
 		result.Err = err
 	} else {
@@ -36,7 +54,7 @@ func ReadSpriteSheet(ch chan ReadSpriteSheetResult, path string) {
 	defer func() {
 		ch <- result
 	}()
-	img, err := readPng(path)
+	img, err := ReadPng(path)
 	if err != nil {
 		result.Err = err
 		return

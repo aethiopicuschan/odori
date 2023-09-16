@@ -2,7 +2,6 @@ package sprite
 
 import (
 	"encoding/json"
-	"fmt"
 	"image"
 
 	"github.com/google/uuid"
@@ -21,6 +20,13 @@ func NewSprite(img image.Image) (sprite Sprite) {
 	}
 }
 
+func NewSpriteWithId(img image.Image, id string) (sprite Sprite) {
+	return Sprite{
+		Image: ebiten.NewImageFromImage(img),
+		id:    id,
+	}
+}
+
 type SubImager interface {
 	SubImage(r image.Rectangle) image.Image
 }
@@ -28,6 +34,13 @@ type SubImager interface {
 func NewSpriteFromRects(img image.Image, rects []image.Rectangle) (sprites []Sprite) {
 	for _, rect := range rects {
 		sprites = append(sprites, NewSprite(img.(SubImager).SubImage(rect)))
+	}
+	return
+}
+
+func NewSpritesFromRectMap(img image.Image, rectMap map[string]image.Rectangle) (sprites []Sprite) {
+	for id, rect := range rectMap {
+		sprites = append(sprites, NewSpriteWithId(img.(SubImager).SubImage(rect), id))
 	}
 	return
 }
@@ -47,12 +60,32 @@ func (s *Sprite) Id() string {
 	return s.id
 }
 
+// スプライトの永続化モデル
+type SpriteP struct {
+	Id      string `json:"id"`
+	IsEmpty bool   `json:"isEmpty"`
+}
+
 func (s *Sprite) MarshalJSON() ([]byte, error) {
-	j := map[string]string{
-		"isEmpty": fmt.Sprintf("%t", s.IsEmpty()),
+	spriteP := SpriteP{
+		Id:      s.id,
+		IsEmpty: s.IsEmpty(),
 	}
-	if !s.IsEmpty() {
-		j["id"] = s.Id()
+	return json.Marshal(spriteP)
+}
+
+func (s *Sprite) UnmarshalJSON(bytes []byte) (err error) {
+	spriteP := SpriteP{}
+	err = json.Unmarshal(bytes, &spriteP)
+	if err != nil {
+		return
 	}
-	return json.Marshal(j)
+	if spriteP.IsEmpty {
+		s.Image = nil
+	} else {
+		// 仮の画像を入れておく
+		s.Image = ebiten.NewImage(1, 1)
+		s.id = spriteP.Id
+	}
+	return
 }
