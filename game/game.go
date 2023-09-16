@@ -17,6 +17,8 @@ import (
 )
 
 type Game struct {
+	width      int
+	height     int
 	components []ui.Component
 	buttons    []*ui.Button
 	noticer    *ui.Noticer
@@ -91,9 +93,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	w, h := ebiten.WindowSize()
-	if w != outsideWidth || h != outsideHeight {
+	if g.width != outsideWidth || g.height != outsideHeight {
 		ebiten.SetWindowSize(outsideWidth, outsideHeight)
+		g.width = outsideWidth
+		g.height = outsideHeight
 		for _, c := range g.components {
 			c.Layout(outsideWidth, outsideHeight)
 		}

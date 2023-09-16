@@ -24,7 +24,6 @@ func NewMenu(children []Component) *Menu {
 }
 
 func (m *Menu) Update() error {
-	_, m.height = ebiten.WindowSize()
 	for _, c := range m.children {
 		c.Update()
 	}
@@ -41,6 +40,7 @@ func (m *Menu) Draw(screen *ebiten.Image) {
 }
 
 func (m *Menu) Layout(outsideWidth, outsideHeight int) {
+	m.height = outsideHeight
 	for _, c := range m.children {
 		c.Layout(outsideWidth, outsideHeight)
 	}
