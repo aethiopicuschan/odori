@@ -350,6 +350,7 @@ func (p *Player) Append(sprite sprite.Sprite) {
 	p.animation.Parts = append(p.animation.Parts, animation.NewPart(sprite, length))
 	p.indexes = append(p.indexes, p.maxTick)
 	p.currentTick = p.maxTick
+	p.currentPart = len(p.animation.Parts) - 1
 	p.maxTick += length
 }
 
