@@ -145,9 +145,6 @@ func (g *Game) newAnimation() {
 		}
 		return
 	}
-	if result.Input == "" {
-		return
-	}
 	g.startProject(result.Input)
 }
 
