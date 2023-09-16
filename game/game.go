@@ -120,7 +120,11 @@ func (g *Game) startProject(name string) {
 		g.player.Append(s)
 	})
 	g.components = append(g.components, g.explorer)
-	g.player = ui.NewPlayer(g.noticer, g.changeAnimationSize)
+	funcMap := map[string]func(){
+		"changeAnimationSize": g.changeAnimationSize,
+		"renameAnimation":     g.renameAnimation,
+	}
+	g.player = ui.NewPlayer(g.name, g.noticer, funcMap)
 	g.components = append(g.components, g.player)
 	g.components = append(g.components, g.noticer)
 }
@@ -235,6 +239,29 @@ func (g *Game) changeAnimationSize() {
 		raw.Width = animationWidth
 		raw.Height = animationHeight
 		g.noticer.AddNotice(ui.INFO, fmt.Sprintf("Animation size is changed to %dx%d", animationWidth, animationHeight))
+	}()
+}
+
+func (g *Game) renameAnimation() {
+	go func() {
+		ch := make(chan io.EntryResult)
+		go io.Entry(ch, "Change animation name", "Enter new name", g.name)
+		result := <-ch
+		close(ch)
+		if result.Err != nil {
+			if result.Err.Error() != "dialog canceled" {
+				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
+			}
+			return
+		}
+		if !animation.IsValidName(result.Input) {
+			g.noticer.AddNotice(ui.ERROR, "Invalid name!")
+			return
+		}
+		g.name = result.Input
+		g.player.Rename(g.name)
+		ebiten.SetWindowTitle(constant.WindowTitle + " - " + g.name)
+		g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Animation name is changed to "%s"`, g.name))
 	}()
 }
 

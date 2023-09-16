@@ -18,29 +18,30 @@ import (
 )
 
 type Player struct {
-	width               int
-	height              int
-	offsetY             int
-	offsetX             int
-	animation           *animation.Animation
-	font                font.Face
-	customLinks         []*Link
-	indexes             []int
-	currentPart         int
-	playing             bool
-	currentTick         int
-	maxTick             int
-	buttons             []*Button
-	barX                int
-	barY                int
-	barWidth            int
-	barHeight           int
-	cursolOnBar         bool
-	noticer             *Noticer
-	changeAnimationSize func()
+	width       int
+	height      int
+	offsetY     int
+	offsetX     int
+	animation   *animation.Animation
+	font        font.Face
+	customLinks []*Link
+	indexes     []int
+	currentPart int
+	playing     bool
+	currentTick int
+	maxTick     int
+	buttons     []*Button
+	barX        int
+	barY        int
+	barWidth    int
+	barHeight   int
+	cursolOnBar bool
+	noticer     *Noticer
+	name        string
+	funcMap     map[string]func()
 }
 
-func NewPlayer(noticer *Noticer, changeAnimationSize func()) *Player {
+func NewPlayer(name string, noticer *Noticer, funcMap map[string]func()) *Player {
 	w, h := ebiten.WindowSize()
 	tt, _ := opentype.Parse(goregular.TTF)
 	font, _ := opentype.NewFace(tt, &opentype.FaceOptions{
@@ -49,9 +50,10 @@ func NewPlayer(noticer *Noticer, changeAnimationSize func()) *Player {
 	})
 
 	p := &Player{}
+	p.name = name
 	p.noticer = noticer
 	p.animation = animation.NewAnimation()
-	p.changeAnimationSize = changeAnimationSize
+	p.funcMap = funcMap
 	p.offsetX = constant.MenuWidth
 	p.offsetY = h / 3
 	p.width = w - p.offsetX
@@ -116,7 +118,8 @@ func NewPlayer(noticer *Noticer, changeAnimationSize func()) *Player {
 	}
 	p.customLinks = []*Link{
 		NewLink(0, 0, "# Informations", nil),
-		NewLink(0, 0, "Size", p.changeAnimationSize),
+		NewLink(0, 0, "Name", p.funcMap["renameAnimation"]),
+		NewLink(0, 0, "Size", p.funcMap["changeAnimationSize"]),
 		NewLink(0, 0, "TPS", nil),
 		NewLink(0, 0, "TotalLen", nil),
 		NewLink(0, 0, "# Properties", nil),
@@ -343,11 +346,11 @@ func (p *Player) Append(sprite sprite.Sprite) {
 	if len(p.animation.Parts) == 0 {
 		p.currentPart = 0
 	}
-	len := ebiten.TPS()
-	p.animation.Parts = append(p.animation.Parts, animation.NewPart(sprite, len))
+	length := ebiten.TPS()
+	p.animation.Parts = append(p.animation.Parts, animation.NewPart(sprite, length))
 	p.indexes = append(p.indexes, p.maxTick)
 	p.currentTick = p.maxTick
-	p.maxTick += len
+	p.maxTick += length
 }
 
 func (p *Player) Update() error {
@@ -365,6 +368,9 @@ func (p *Player) Update() error {
 		b.Update()
 	}
 	for _, l := range p.customLinks {
+		if l.id == "Name" {
+			l.SetLabel(fmt.Sprintf("Name : %s", p.name))
+		}
 		if l.id == "Size" {
 			l.SetLabel(fmt.Sprintf("Size: %dx%d", p.animation.Width, p.animation.Height))
 		}
@@ -643,4 +649,8 @@ func (p *Player) Stop() {
 func (p *Player) Import(a *animation.Animation) {
 	p.animation = a
 	p.resetIndexes()
+}
+
+func (p *Player) Rename(name string) {
+	p.name = name
 }
