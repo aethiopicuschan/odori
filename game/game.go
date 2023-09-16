@@ -48,9 +48,6 @@ func NewGame() ebiten.Game {
 	for _, name := range buttonList {
 		button := ui.NewButton(buttonOffset, buttonOffset*(i+1)+buttonHeight*i, buttonWidth, buttonHeight, name, buttonMap[name])
 		game.buttons = append(game.buttons, button)
-		if name != "New animation" && name != "Import" {
-			button.SetDisabled(true)
-		}
 		buttons = append(buttons, button)
 		i++
 	}
@@ -67,12 +64,10 @@ func (g *Game) Update() error {
 	// TODO 開いているプロジェクトがあるときにWindowを閉じるときは確認する
 	ebiten.SetCursorShape(ebiten.CursorShapeDefault)
 	for _, button := range g.buttons {
-		if button.Label() == "Export" {
-			if g.player != nil && g.player.CanExport() {
-				button.SetDisabled(false)
-			} else {
-				button.SetDisabled(true)
-			}
+		if g.name == "" {
+			button.SetDisabled(button.Label() != "New animation" && button.Label() != "Import")
+		} else {
+			button.SetDisabled(button.Label() == "New animation" || button.Label() == "Import")
 		}
 	}
 	for _, c := range g.components {
@@ -107,14 +102,6 @@ func (g *Game) startProject(name string) {
 	}
 	g.name = name
 	ebiten.SetWindowTitle(constant.WindowTitle + " - " + g.name)
-	for _, button := range g.buttons {
-		if button.Label() == "New animation" || button.Label() == "Import" {
-			button.SetDisabled(true)
-		} else if button.Label() != "Export" {
-			button.SetDisabled(false)
-		}
-	}
-
 	for i, component := range g.components {
 		// noticerを一度消す
 		if component == g.noticer {
