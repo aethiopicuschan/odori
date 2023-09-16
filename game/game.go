@@ -259,6 +259,17 @@ func (g *Game) exportAnimation() {
 		return
 	}
 	dir := filepath.Dir(result.Path)
+	spriteSheetPath := filepath.Join(dir, g.name+".png")
+	jsonPath := filepath.Join(dir, g.name+".json")
+	if io.IsExist(spriteSheetPath) || io.IsExist(jsonPath) {
+		questionCh := make(chan io.QuestionResult)
+		go io.Question(questionCh, "Overwrite", "Overwrite existing files?")
+		result := <-questionCh
+		close(questionCh)
+		if !result.Answer {
+			return
+		}
+	}
 	spriteSheet := map[string]image.Rectangle{}
 	// スプライトシートの出力
 	if len(sprites) != 0 {
