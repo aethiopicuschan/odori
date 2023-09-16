@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"path"
-	"path/filepath"
 
 	"github.com/aethiopicuschan/odori/animation"
 	"github.com/aethiopicuschan/odori/constant"
@@ -102,6 +101,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 // newAnimationとImportから呼ばれる想定
 func (g *Game) startProject(name string) {
+	if !animation.IsValidName(name) {
+		g.noticer.AddNotice(ui.ERROR, "Invalid name!")
+		return
+	}
 	g.name = name
 	ebiten.SetWindowTitle(constant.WindowTitle + " - " + g.name)
 	for _, button := range g.buttons {
@@ -143,11 +146,6 @@ func (g *Game) newAnimation() {
 		return
 	}
 	if result.Input == "" {
-		return
-	}
-	base := filepath.Base(result.Input)
-	if base != result.Input {
-		g.noticer.AddNotice(ui.ERROR, "Invalid name!")
 		return
 	}
 	g.startProject(result.Input)
@@ -267,11 +265,10 @@ func (g *Game) exportAnimation() {
 			sprites = append(sprites, sprite)
 		}
 		spriteSheet := map[string]image.Rectangle{}
-		name := filepath.Base(g.name)
 		// スプライトシートの出力
 		if len(sprites) != 0 {
 			ch := make(chan io.WriteSpriteSheetResult)
-			go io.WriteSpriteSheet(ch, sprites, fmt.Sprintf("./%s.png", name))
+			go io.WriteSpriteSheet(ch, sprites, fmt.Sprintf("./%s.png", g.name))
 			result := <-ch
 			close(ch)
 			if result.Err != nil {
@@ -282,7 +279,7 @@ func (g *Game) exportAnimation() {
 		}
 		// AnimationのJSON出力
 		bytes, err := json.MarshalIndent(animation.AnimationP{
-			Name:        name,
+			Name:        g.name,
 			Animation:   raw,
 			SpriteSheet: spriteSheet,
 		}, "", "  ")
@@ -291,7 +288,7 @@ func (g *Game) exportAnimation() {
 			return
 		}
 		ch := make(chan error)
-		go io.Write(ch, bytes, fmt.Sprintf("./%s.json", name))
+		go io.Write(ch, bytes, fmt.Sprintf("./%s.json", g.name))
 		err = <-ch
 		close(ch)
 		if err != nil {
@@ -330,7 +327,7 @@ func (g *Game) importAnimation() {
 		return
 	}
 	// スプライトシートの読み込み
-	si, err := io.ReadPng(path.Join(path.Dir(result.Path), path.Base(animationP.Name)+".png"))
+	si, err := io.ReadPng(path.Join(path.Dir(result.Path), animationP.Name+".png"))
 	if err != nil {
 		g.noticer.AddNotice(ui.ERROR, err.Error())
 		return
@@ -351,5 +348,5 @@ func (g *Game) importAnimation() {
 		}
 	}
 	g.player.Import(animationP.Animation)
-	g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Project "%s" is imported with %d sprites!`, animationP.Name, len(sprites)))
+	g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Project "%s" was imported with %d sprites!`, animationP.Name, len(sprites)))
 }
