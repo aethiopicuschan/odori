@@ -119,10 +119,11 @@ func NewPlayer(name string, noticer *Noticer, funcMap map[string]func()) *Player
 	p.customLinks = []*Link{
 		NewLink(0, 0, "# Informations", nil),
 		NewLink(0, 0, "Name", p.funcMap["renameAnimation"]),
-		NewLink(0, 0, "Size", p.funcMap["changeAnimationSize"]),
+		NewLink(0, 0, "AnimationSize", p.funcMap["changeAnimationSize"]),
 		NewLink(0, 0, "TPS", nil),
 		NewLink(0, 0, "TotalLen", nil),
 		NewLink(0, 0, "# Properties", nil),
+		NewLink(0, 0, "Size", nil),
 		NewLink(0, 0, "Scale", func() {
 			p.playing = false
 			go func() {
@@ -372,7 +373,7 @@ func (p *Player) Update() error {
 		if l.id == "Name" {
 			l.SetLabel(fmt.Sprintf("Name : %s", p.name))
 		}
-		if l.id == "Size" {
+		if l.id == "AnimationSize" {
 			l.SetLabel(fmt.Sprintf("Size: %dx%d", p.animation.Width, p.animation.Height))
 		}
 		if l.id == "TPS" {
@@ -403,17 +404,40 @@ func (p *Player) Update() error {
 		part := p.animation.Parts[p.currentPart]
 		// カスタムリンク
 		for _, l := range p.customLinks {
+			if l.id == "Size" {
+				if part.Sprite.IsEmpty() {
+					l.SetLabel("Size: -")
+				} else {
+					l.SetLabel(fmt.Sprintf("Size: %dx%d", part.Sprite.Image.Bounds().Dx(), part.Sprite.Image.Bounds().Dy()))
+				}
+			}
 			if l.id == "Scale" {
-				l.SetLabel(fmt.Sprintf("Scale: %0.2f", part.Scale))
+				if part.Sprite.IsEmpty() {
+					l.SetLabel("Scale: -")
+				} else {
+					l.SetLabel(fmt.Sprintf("Scale: %0.2f (=%0.2fx%0.2f)", part.Scale, float64(part.Sprite.Image.Bounds().Dx())*part.Scale, float64(part.Sprite.Image.Bounds().Dy())*part.Scale))
+				}
 			}
 			if l.id == "DiffX" {
-				l.SetLabel(fmt.Sprintf("DiffX: %d", part.DiffX))
+				if part.Sprite.IsEmpty() {
+					l.SetLabel("DiffX: -")
+				} else {
+					l.SetLabel(fmt.Sprintf("DiffX: %d", part.DiffX))
+				}
 			}
 			if l.id == "DiffY" {
-				l.SetLabel(fmt.Sprintf("DiffY: %d", part.DiffY))
+				if part.Sprite.IsEmpty() {
+					l.SetLabel("DiffY: -")
+				} else {
+					l.SetLabel(fmt.Sprintf("DiffY: %d", part.DiffY))
+				}
 			}
 			if l.id == "Reverse" {
-				l.SetLabel(fmt.Sprintf("Reverse: %t", part.Reverse))
+				if part.Sprite.IsEmpty() {
+					l.SetLabel("Reverse: -")
+				} else {
+					l.SetLabel(fmt.Sprintf("Reverse: %t", part.Reverse))
+				}
 			}
 			if l.id == "Len" {
 				l.SetLabel(fmt.Sprintf("Len  : %d ticks (%0.2f sec)", part.Length, float64(part.Length)/float64(ebiten.TPS())))
@@ -635,7 +659,7 @@ func (p *Player) Layout(outsideWidth, outsideHeight int) {
 	}
 	defaultBs := text.BoundString(p.font, "DEFAULT")
 	for i, l := range p.customLinks {
-		l.MoveTo(p.offsetX+5, p.offsetY+5+((defaultBs.Dy()+5)*i))
+		l.MoveTo(p.offsetX+5, p.offsetY+5+((defaultBs.Dy()+3)*i))
 	}
 }
 
