@@ -48,7 +48,7 @@ func NewSpritesFromRectMap(img image.Image, rectMap map[string]image.Rectangle) 
 func NewEmptySprite() (sprite Sprite) {
 	return Sprite{
 		Image: nil,
-		id:    uuid.NewString(),
+		id:    "",
 	}
 }
 
@@ -67,8 +67,12 @@ type SpriteP struct {
 }
 
 func (s *Sprite) MarshalJSON() ([]byte, error) {
+	id := s.id
+	if s.IsEmpty() {
+		id = ""
+	}
 	spriteP := SpriteP{
-		Id:      s.id,
+		Id:      id,
 		IsEmpty: s.IsEmpty(),
 	}
 	return json.Marshal(spriteP)

@@ -309,27 +309,40 @@ func (g *Game) importAnimation() {
 		g.noticer.AddNotice(ui.ERROR, err.Error())
 		return
 	}
-	// スプライトシートの読み込み
-	si, err := io.ReadPng(path.Join(path.Dir(result.Path), animationP.Name+".png"))
-	if err != nil {
-		g.noticer.AddNotice(ui.ERROR, err.Error())
-		return
-	}
-	sprites := sprite.NewSpritesFromRectMap(si, animationP.SpriteSheet)
-	g.startProject(animationP.Name)
-	for _, sprite := range sprites {
-		g.explorer.AppendSprite(sprite)
-	}
-	for i, part := range animationP.Animation.Parts {
+	withSpriteSheet := false
+	for _, part := range animationP.Animation.Parts {
 		if !part.Sprite.IsEmpty() {
-			for _, sprite := range sprites {
-				if sprite.Id() == part.Sprite.Id() {
-					animationP.Animation.Parts[i].Sprite = sprite
-					break
+			withSpriteSheet = true
+			break
+		}
+	}
+	// スプライトシートの読み込み
+	if withSpriteSheet {
+		si, err := io.ReadPng(path.Join(path.Dir(result.Path), animationP.Name+".png"))
+		if err != nil {
+			g.noticer.AddNotice(ui.ERROR, err.Error())
+			return
+		}
+		sprites := sprite.NewSpritesFromRectMap(si, animationP.SpriteSheet)
+		g.startProject(animationP.Name)
+		for _, sprite := range sprites {
+			g.explorer.AppendSprite(sprite)
+		}
+		for i, part := range animationP.Animation.Parts {
+			if !part.Sprite.IsEmpty() {
+				for _, sprite := range sprites {
+					if sprite.Id() == part.Sprite.Id() {
+						animationP.Animation.Parts[i].Sprite = sprite
+						break
+					}
 				}
 			}
 		}
+		g.player.Import(animationP.Animation)
+		g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Project "%s" was imported with %d sprites!`, animationP.Name, len(sprites)))
+	} else {
+		g.startProject(animationP.Name)
+		g.player.Import(animationP.Animation)
+		g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Project "%s" was imported!`, animationP.Name))
 	}
-	g.player.Import(animationP.Animation)
-	g.noticer.AddNotice(ui.INFO, fmt.Sprintf(`Project "%s" was imported with %d sprites!`, animationP.Name, len(sprites)))
 }
