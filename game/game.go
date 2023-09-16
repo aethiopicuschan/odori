@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"path"
+	"path/filepath"
 
 	"github.com/aethiopicuschan/odori/animation"
 	"github.com/aethiopicuschan/odori/constant"
@@ -231,7 +232,6 @@ func (g *Game) changeAnimationSize() {
 	}()
 }
 
-// TODO パスと名前を指定できるようにする
 func (g *Game) exportAnimation() {
 	if !g.player.CanExport() {
 		return
@@ -248,11 +248,22 @@ func (g *Game) exportAnimation() {
 	for _, sprite := range m {
 		sprites = append(sprites, sprite)
 	}
+	selectDirCh := make(chan io.SelectDirResult)
+	go io.SelectDir(selectDirCh)
+	result := <-selectDirCh
+	close(selectDirCh)
+	if result.Err != nil {
+		if result.Err.Error() != "dialog canceled" {
+			g.noticer.AddNotice(ui.ERROR, result.Err.Error())
+		}
+		return
+	}
+	dir := filepath.Dir(result.Path)
 	spriteSheet := map[string]image.Rectangle{}
 	// スプライトシートの出力
 	if len(sprites) != 0 {
 		ch := make(chan io.WriteSpriteSheetResult)
-		go io.WriteSpriteSheet(ch, sprites, fmt.Sprintf("./%s.png", g.name))
+		go io.WriteSpriteSheet(ch, sprites, filepath.Join(dir, g.name+".png"))
 		result := <-ch
 		close(ch)
 		if result.Err != nil {
@@ -271,10 +282,10 @@ func (g *Game) exportAnimation() {
 		g.noticer.AddNotice(ui.ERROR, err.Error())
 		return
 	}
-	ch := make(chan error)
-	go io.Write(ch, bytes, fmt.Sprintf("./%s.json", g.name))
-	err = <-ch
-	close(ch)
+	writeCh := make(chan error)
+	go io.Write(writeCh, bytes, filepath.Join(dir, g.name+".json"))
+	err = <-writeCh
+	close(writeCh)
 	if err != nil {
 		g.noticer.AddNotice(ui.ERROR, err.Error())
 		return
