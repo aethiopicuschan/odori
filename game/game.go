@@ -236,51 +236,50 @@ func (g *Game) exportAnimation() {
 	if !g.player.CanExport() {
 		return
 	}
-	go func() {
-		raw := g.player.RawAnimation()
-		m := map[string]sprite.Sprite{}
-		for _, part := range raw.Parts {
-			if !part.Sprite.IsEmpty() {
-				m[part.Sprite.Id()] = part.Sprite
-			}
+	g.player.Stop()
+	raw := g.player.RawAnimation()
+	m := map[string]sprite.Sprite{}
+	for _, part := range raw.Parts {
+		if !part.Sprite.IsEmpty() {
+			m[part.Sprite.Id()] = part.Sprite
 		}
-		sprites := []sprite.Sprite{}
-		for _, sprite := range m {
-			sprites = append(sprites, sprite)
-		}
-		spriteSheet := map[string]image.Rectangle{}
-		// スプライトシートの出力
-		if len(sprites) != 0 {
-			ch := make(chan io.WriteSpriteSheetResult)
-			go io.WriteSpriteSheet(ch, sprites, fmt.Sprintf("./%s.png", g.name))
-			result := <-ch
-			close(ch)
-			if result.Err != nil {
-				g.noticer.AddNotice(ui.ERROR, result.Err.Error())
-				return
-			}
-			spriteSheet = result.RectsMap
-		}
-		// AnimationのJSON出力
-		bytes, err := json.MarshalIndent(animation.AnimationP{
-			Name:        g.name,
-			Animation:   raw,
-			SpriteSheet: spriteSheet,
-		}, "", "  ")
-		if err != nil {
-			g.noticer.AddNotice(ui.ERROR, err.Error())
-			return
-		}
-		ch := make(chan error)
-		go io.Write(ch, bytes, fmt.Sprintf("./%s.json", g.name))
-		err = <-ch
+	}
+	sprites := []sprite.Sprite{}
+	for _, sprite := range m {
+		sprites = append(sprites, sprite)
+	}
+	spriteSheet := map[string]image.Rectangle{}
+	// スプライトシートの出力
+	if len(sprites) != 0 {
+		ch := make(chan io.WriteSpriteSheetResult)
+		go io.WriteSpriteSheet(ch, sprites, fmt.Sprintf("./%s.png", g.name))
+		result := <-ch
 		close(ch)
-		if err != nil {
-			g.noticer.AddNotice(ui.ERROR, err.Error())
+		if result.Err != nil {
+			g.noticer.AddNotice(ui.ERROR, result.Err.Error())
 			return
 		}
-		g.noticer.AddNotice(ui.INFO, "Exported!")
-	}()
+		spriteSheet = result.RectsMap
+	}
+	// AnimationのJSON出力
+	bytes, err := json.MarshalIndent(animation.AnimationP{
+		Name:        g.name,
+		Animation:   raw,
+		SpriteSheet: spriteSheet,
+	}, "", "  ")
+	if err != nil {
+		g.noticer.AddNotice(ui.ERROR, err.Error())
+		return
+	}
+	ch := make(chan error)
+	go io.Write(ch, bytes, fmt.Sprintf("./%s.json", g.name))
+	err = <-ch
+	close(ch)
+	if err != nil {
+		g.noticer.AddNotice(ui.ERROR, err.Error())
+		return
+	}
+	g.noticer.AddNotice(ui.INFO, "Exported!")
 }
 
 func (g *Game) importAnimation() {

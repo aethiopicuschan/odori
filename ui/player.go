@@ -640,6 +640,10 @@ func (p *Player) RawAnimation() *animation.Animation {
 	return p.animation
 }
 
+func (p *Player) Stop() {
+	p.playing = false
+}
+
 func (p *Player) Import(a *animation.Animation) {
 	p.animation = a
 	p.resetIndexes()
