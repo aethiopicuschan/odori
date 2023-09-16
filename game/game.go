@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"path"
 	"path/filepath"
 
 	"github.com/aethiopicuschan/odori/animation"
@@ -376,7 +375,7 @@ func (g *Game) importAnimation() {
 	}
 	// スプライトシートの読み込み
 	if withSpriteSheet {
-		si, err := io.ReadPng(path.Join(path.Dir(result.Path), animationP.Name+".png"))
+		si, err := io.ReadPng(filepath.Join(filepath.Dir(result.Path), animationP.Name+".png"))
 		if err != nil {
 			g.noticer.AddNotice(ui.ERROR, err.Error())
 			return
